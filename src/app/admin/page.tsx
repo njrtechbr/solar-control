@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Link, User, SunMedium, Copy, Home, Building, Bolt, FileText, Trash2, Edit, MoreHorizontal, AlertTriangle } from "lucide-react";
+import { Link, User, SunMedium, Copy, Home, Building, Bolt, FileText, Trash2, Edit, MoreHorizontal, AlertTriangle, FileCheck2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -63,6 +63,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 
 const installationSchema = z.object({
   id: z.number().optional(),
@@ -76,22 +78,43 @@ const installationSchema = z.object({
   }),
   utilityCompany: z.string().min(2, "O nome da concessionária é obrigatório."),
   status: z.enum(["Pendente", "Concluído", "Cancelado"]).default("Pendente"),
+  reportSubmitted: z.boolean().default(false),
 });
 
 type Installation = z.infer<typeof installationSchema>;
 
 const initialInstallations: Installation[] = [
-    { id: 1, clientName: "Condomínio Sol Nascente", address: "Rua A, 123", city: "Campinas", state: "SP", zipCode: "13000-001", installationType: "comercial", utilityCompany: "CPFL", status: "Pendente" },
-    { id: 2, clientName: "Maria Silva", address: "Rua B, 456", city: "São Paulo", state: "SP", zipCode: "01000-002", installationType: "residencial", utilityCompany: "Enel", status: "Concluído" },
-    { id: 3, clientName: "Supermercado Economia", address: "Av. C, 789", city: "Valinhos", state: "SP", zipCode: "13270-003", installationType: "comercial", utilityCompany: "CPFL", status: "Cancelado" },
+    { id: 1, clientName: "Condomínio Sol Nascente", address: "Rua A, 123", city: "Campinas", state: "SP", zipCode: "13000-001", installationType: "comercial", utilityCompany: "CPFL", status: "Pendente", reportSubmitted: false },
+    { id: 2, clientName: "Maria Silva", address: "Rua B, 456", city: "São Paulo", state: "SP", zipCode: "01000-002", installationType: "residencial", utilityCompany: "Enel", status: "Concluído", reportSubmitted: true },
+    { id: 3, clientName: "Supermercado Economia", address: "Av. C, 789", city: "Valinhos", state: "SP", zipCode: "13270-003", installationType: "comercial", utilityCompany: "CPFL", status: "Cancelado", reportSubmitted: false },
 ];
 
 
 export default function AdminPage() {
-  const [installations, setInstallations] = useState<Installation[]>(initialInstallations);
+  const [installations, setInstallations] = useState<Installation[]>([]);
   const [editingInstallation, setEditingInstallation] = useState<Installation | null>(null);
   const [deletingInstallation, setDeletingInstallation] = useState<Installation | null>(null);
+  const [viewingReport, setViewingReport] = useState<any | null>(null);
   const [linkDialog, setLinkDialog] = useState({ isOpen: false, link: "" });
+
+  useEffect(() => {
+    // Load installations from localStorage on mount
+    const savedInstallations = localStorage.getItem('installations');
+    const loadedInstallations = savedInstallations ? JSON.parse(savedInstallations) : initialInstallations;
+    
+    // Check for submitted reports
+    const updatedInstallations = loadedInstallations.map((inst: Installation) => {
+        const report = localStorage.getItem(`report_${inst.clientName}`);
+        return { ...inst, reportSubmitted: !!report };
+    });
+    setInstallations(updatedInstallations);
+  }, []);
+
+  const saveInstallations = (newInstallations: Installation[]) => {
+    setInstallations(newInstallations);
+    localStorage.setItem('installations', JSON.stringify(newInstallations));
+  };
+
 
   const form = useForm<Installation>({
     resolver: zodResolver(installationSchema),
@@ -112,21 +135,23 @@ export default function AdminPage() {
   });
 
   function handleCreate(values: Installation) {
-    const newInstallation = { ...values, id: Date.now() };
-    setInstallations(prev => [...prev, newInstallation]);
+    const newInstallation = { ...values, id: Date.now(), reportSubmitted: false };
+    saveInstallations([...installations, newInstallation]);
     toast({ title: "Instalação Cadastrada!", description: `Cliente ${values.clientName} adicionado.` });
     form.reset();
   }
   
   function handleUpdate(values: Installation) {
-    setInstallations(prev => prev.map(inst => inst.id === values.id ? values : inst));
+    const updatedInstallations = installations.map(inst => inst.id === values.id ? values : inst)
+    saveInstallations(updatedInstallations);
     toast({ title: "Instalação Atualizada!", description: `Os dados de ${values.clientName} foram salvos.` });
     setEditingInstallation(null);
   }
   
   function handleDelete() {
     if (!deletingInstallation) return;
-    setInstallations(prev => prev.filter(inst => inst.id !== deletingInstallation.id));
+    const updatedInstallations = installations.filter(inst => inst.id !== deletingInstallation.id)
+    saveInstallations(updatedInstallations);
     toast({ title: "Instalação Excluída!", variant: "destructive", description: `O registro de ${deletingInstallation.clientName} foi removido.` });
     setDeletingInstallation(null);
   }
@@ -147,6 +172,19 @@ export default function AdminPage() {
       title: "Link Copiado!",
       description: "O link foi copiado para a área de transferência.",
     });
+  }
+
+  function openReportDialog(clientName: string) {
+    const reportData = localStorage.getItem(`report_${clientName}`);
+    if (reportData) {
+        setViewingReport(JSON.parse(reportData));
+    } else {
+        toast({
+            title: "Relatório não encontrado",
+            description: "O instalador ainda não enviou o relatório para este cliente.",
+            variant: "destructive"
+        })
+    }
   }
 
   const getBadgeVariant = (status: Installation["status"]) => {
@@ -181,6 +219,7 @@ export default function AdminPage() {
                           <TableRow>
                               <TableHead>Cliente</TableHead>
                               <TableHead>Status</TableHead>
+                              <TableHead>Relatório</TableHead>
                               <TableHead>Cidade/UF</TableHead>
                               <TableHead className="text-right">Ações</TableHead>
                           </TableRow>
@@ -191,6 +230,13 @@ export default function AdminPage() {
                               <TableCell className="font-medium">{inst.clientName}</TableCell>
                               <TableCell>
                                 <Badge variant={getBadgeVariant(inst.status)}>{inst.status}</Badge>
+                              </TableCell>
+                               <TableCell>
+                                {inst.reportSubmitted ? (
+                                    <Badge variant="default" className="bg-green-600 hover:bg-green-700">Enviado</Badge>
+                                ) : (
+                                    <Badge variant="secondary">Pendente</Badge>
+                                )}
                               </TableCell>
                               <TableCell>{inst.city}/{inst.state}</TableCell>
                               <TableCell className="text-right">
@@ -203,6 +249,12 @@ export default function AdminPage() {
                                       </DropdownMenuTrigger>
                                       <DropdownMenuContent align="end">
                                         <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                                         {inst.reportSubmitted && (
+                                            <DropdownMenuItem onClick={() => openReportDialog(inst.clientName)}>
+                                                <FileCheck2 className="mr-2 h-4 w-4" />
+                                                <span>Ver Relatório</span>
+                                            </DropdownMenuItem>
+                                        )}
                                         <DropdownMenuItem onClick={() => generateLink(inst.clientName)}>
                                             <Link className="mr-2 h-4 w-4" />
                                             <span>Ver Link</span>
@@ -379,6 +431,61 @@ export default function AdminPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+       {/* View Report Dialog */}
+        <Dialog open={!!viewingReport} onOpenChange={(open) => !open && setViewingReport(null)}>
+            <DialogContent className="sm:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>Relatório de Instalação - {viewingReport?.clientName}</DialogTitle>
+                    <DialogDescription>Detalhes preenchidos pelo instalador.</DialogDescription>
+                </DialogHeader>
+                <ScrollArea className="max-h-[70vh] pr-6">
+                {viewingReport && (
+                    <div className="space-y-4 py-4">
+                        <h3 className="font-semibold text-lg">Informações Gerais</h3>
+                        <p><strong>Potência do Painel:</strong> {viewingReport.panelPower || 'N/A'} Wp</p>
+                        <Separator />
+
+                        <h3 className="font-semibold text-lg mt-4">Medições das Strings (VCC)</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            {viewingReport.strings.map((s: any, i: number) => (
+                                (s.voltage || s.plates) && <div key={i}><p className="font-medium">String {i+1}:</p> Tensão: {s.voltage || 'N/A'}V, Placas: {s.plates || 'N/A'}</div>
+                            ))}
+                        </div>
+                         <Separator />
+
+                        <h3 className="font-semibold text-lg mt-4">Medições Elétricas (CA)</h3>
+                        <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+                            <p><strong>F1 x N:</strong> {viewingReport.phase1Neutro || 'N/A'} V</p>
+                            <p><strong>F2 x N:</strong> {viewingReport.phase2Neutro || 'N/A'} V</p>
+                            <p><strong>F3 x N:</strong> {viewingReport.phase3Neutro || 'N/A'} V</p>
+                            <p><strong>F1 x F2:</strong> {viewingReport.phase1phase2 || 'N/A'} V</p>
+                            <p><strong>F1 x F3:</strong> {viewingReport.phase1phase3 || 'N/A'} V</p>
+                            <p><strong>F2 x F3:</strong> {viewingReport.phase2phase3 || 'N/A'} V</p>
+                            <p><strong>Fase x Terra:</strong> {viewingReport.phaseTerra || 'N/A'} V</p>
+                            <p><strong>Neutro x Terra:</strong> {viewingReport.neutroTerra || 'N/A'} V</p>
+                        </div>
+                         <Separator />
+
+                        <h3 className="font-semibold text-lg mt-4">Componentes e Cabeamento</h3>
+                        <p><strong>Cabo Medidor x Disjuntor:</strong> {viewingReport.cableMeterToBreaker || 'N/A'}</p>
+                        <p><strong>Cabo Disjuntor x Inversor:</strong> {viewingReport.cableBreakerToInverter || 'N/A'}</p>
+                        <p><strong>Disjuntor Geral:</strong> {viewingReport.generalBreaker || 'N/A'}</p>
+                        <p><strong>Disjuntor Inversor:</strong> {viewingReport.inverterBreaker || 'N/A'}</p>
+                        <Separator />
+                        
+                        <h3 className="font-semibold text-lg mt-4">Verificação Final</h3>
+                         <p><strong>Datalogger Online:</strong> {viewingReport.dataloggerConnected ? 'Sim' : 'Não'}</p>
+                        {viewingReport.observations && <p><strong>Observações:</strong> {viewingReport.observations}</p>}
+
+                    </div>
+                )}
+                </ScrollArea>
+                <DialogFooter>
+                    <Button onClick={() => setViewingReport(null)}>Fechar</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </>
   );
 }

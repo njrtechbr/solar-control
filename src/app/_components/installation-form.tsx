@@ -42,7 +42,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { Separator } from "@/components/ui/separator";
 
 const formSchema = z.object({
   clientName: z.string().min(1, "O nome do cliente é obrigatório."),
@@ -102,11 +101,36 @@ export default function InstallationForm({ clientName }: { clientName: string })
   });
 
   function onSubmit(data: FormValues) {
-    console.log(data);
-    toast({
-      title: "Registro Enviado com Sucesso!",
-      description: "As informações da instalação foram salvas. Você pode fechar esta página.",
-    });
+    // We are ignoring photo and video uploads for now
+    const { photo_uploads, installationVideo, ...reportData } = data;
+    
+    try {
+        // Save the report to localStorage, keyed by the client's name
+        localStorage.setItem(`report_${data.clientName}`, JSON.stringify(reportData));
+        
+        // Also update the main installations list to mark the report as submitted
+        const installations = JSON.parse(localStorage.getItem('installations') || '[]');
+        const updatedInstallations = installations.map((inst: any) => 
+            inst.clientName === data.clientName ? { ...inst, reportSubmitted: true } : inst
+        );
+        localStorage.setItem('installations', JSON.stringify(updatedInstallations));
+
+        toast({
+          title: "Relatório Enviado com Sucesso!",
+          description: "As informações da instalação foram salvas. Você pode fechar esta página.",
+        });
+        
+        // Optionally, disable the form after submission
+        form.reset({}, { keepValues: true });
+
+    } catch (error) {
+        console.error("Failed to save report to localStorage", error);
+        toast({
+            title: "Erro ao Salvar",
+            description: "Não foi possível salvar o relatório. Verifique as permissões do navegador.",
+            variant: "destructive"
+        })
+    }
   }
 
   return (
@@ -300,7 +324,7 @@ export default function InstallationForm({ clientName }: { clientName: string })
             </Accordion>
 
             <div className="pt-4">
-              <Button type="submit" size="lg" className="w-full">Registrar Instalação</Button>
+              <Button type="submit" size="lg" className="w-full" disabled={form.formState.isSubmitted}>Enviar Relatório</Button>
             </div>
           </form>
         </Form>
