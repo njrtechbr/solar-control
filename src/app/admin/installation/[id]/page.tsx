@@ -784,8 +784,8 @@ export default function InstallationDetailPage() {
                     <CardDescription>Gerencie o andamento da instalação.</CardDescription>
                 </CardHeader>
                 <CardContent className="text-sm space-y-4">
-                    {statusItems.map((item, index) => (
-                         <div key={index} className="space-y-1">
+                    {statusItems.map((item) => (
+                         <div key={item.key} className="space-y-1">
                             <Label className="flex items-center gap-2 text-muted-foreground">
                                 <item.icon className="h-4 w-4"/>
                                 <span>{item.label}</span>
@@ -800,7 +800,7 @@ export default function InstallationDetailPage() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     {item.options.map(option => (
-                                        <SelectItem key={option} value={option}>{option}</SelectItem>
+                                        <SelectItem key={`${item.key}-${option}`} value={option}>{option}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
