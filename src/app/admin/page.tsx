@@ -64,6 +64,7 @@ const installationSchema = z.object({
   utilityCompany: z.string().min(2, "O nome da concessionária é obrigatório."),
   status: z.enum(["Pendente", "Agendado", "Em Andamento", "Concluído", "Cancelado"]).default("Pendente"),
   reportSubmitted: z.boolean().default(false),
+  scheduledDate: z.string().optional(),
   events: z.array(z.object({
     id: z.string(),
     date: z.string(),
@@ -76,7 +77,7 @@ const installationSchema = z.object({
 export type Installation = z.infer<typeof installationSchema>;
 
 const initialInstallations: Installation[] = [
-    { id: 1, clientName: "Condomínio Sol Nascente", address: "Rua A, 123", city: "Campinas", state: "SP", zipCode: "13000-001", installationType: "comercial", utilityCompany: "CPFL", status: "Agendado", reportSubmitted: false, events: [
+    { id: 1, clientName: "Condomínio Sol Nascente", address: "Rua A, 123", city: "Campinas", state: "SP", zipCode: "13000-001", installationType: "comercial", utilityCompany: "CPFL", status: "Agendado", reportSubmitted: false, scheduledDate: new Date(Date.now() + 86400000 * 3).toISOString(), events: [
       { id: '1', date: new Date(Date.now() - 86400000 * 2).toISOString(), type: 'Agendamento', description: 'Visita técnica agendada com o cliente.'}
     ] },
     { id: 2, clientName: "Maria Silva", address: "Rua B, 456", city: "São Paulo", state: "SP", zipCode: "01000-002", installationType: "residencial", utilityCompany: "Enel", status: "Concluído", reportSubmitted: true, events: [
@@ -87,6 +88,7 @@ const initialInstallations: Installation[] = [
     { id: 3, clientName: "Supermercado Economia", address: "Av. C, 789", city: "Valinhos", state: "SP", zipCode: "13270-003", installationType: "comercial", utilityCompany: "CPFL", status: "Cancelado", reportSubmitted: false, events: [
       { id: '1', date: new Date(Date.now() - 86400000 * 10).toISOString(), type: 'Nota', description: 'Cliente solicitou cancelamento por motivos financeiros.'}
     ] },
+    { id: 4, clientName: "João Pereira", address: "Rua D, 101", city: "Jundiaí", state: "SP", zipCode: "13201-004", installationType: "residencial", utilityCompany: "CPFL", status: "Pendente", reportSubmitted: false, events: [] },
 ];
 
 const createSampleReport = () => {
@@ -167,7 +169,7 @@ export default function AdminPage() {
   });
 
   function handleCreate(values: Installation) {
-    const newInstallation = { ...values, id: Date.now(), reportSubmitted: false, events: [] };
+    const newInstallation = { ...values, id: Date.now(), reportSubmitted: false, events: [], scheduledDate: undefined };
     saveInstallations([...installations, newInstallation]);
     toast({ title: "Instalação Cadastrada!", description: `Cliente ${values.clientName} adicionado.` });
     form.reset();
@@ -463,3 +465,5 @@ export default function AdminPage() {
     </>
   );
 }
+
+    

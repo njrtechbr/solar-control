@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar as CalendarIcon, ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar, MessageSquare, Check, Sparkles, Copy, FileCheck2, Camera, Video, Bolt } from "lucide-react";
+import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Camera, Video, Bolt, Clock } from "lucide-react";
 
 import { type Installation } from "@/app/admin/page";
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -58,8 +58,14 @@ const eventSchema = z.object({
   date: z.date({ required_error: "A data é obrigatória." }),
   attachments: z.any().optional(),
 });
-
 type EventValues = z.infer<typeof eventSchema>;
+
+const scheduleSchema = z.object({
+    date: z.date({ required_error: "A data é obrigatória." }),
+    time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato de hora inválido (HH:mm).").optional(),
+    notes: z.string().optional(),
+});
+type ScheduleValues = z.infer<typeof scheduleSchema>;
 
 const finalReportSchema = z.object({
     protocolNumber: z.string().min(1, "O número do protocolo é obrigatório."),
@@ -67,7 +73,7 @@ const finalReportSchema = z.object({
 type FinalReportValues = z.infer<typeof finalReportSchema>;
 
 const EVENT_TYPES = [
-  { value: "Agendamento", label: "Agendamento", icon: Calendar },
+  { value: "Agendamento", label: "Agendamento", icon: CalendarIcon },
   { value: "Problema", label: "Problema Encontrado", icon: AlertCircle },
   { value: "Nota", label: "Nota Interna", icon: MessageSquare },
   { value: "Vistoria", label: "Vistoria Técnica", icon: Wrench },
@@ -81,6 +87,7 @@ export default function InstallationDetailPage() {
 
   const [installation, setInstallation] = useState<Installation | null>(null);
   const [isEventDialogOpen, setEventDialogOpen] = useState(false);
+  const [isScheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [installerReport, setInstallerReport] = useState<any | null>(null);
   const [generatedFinalReport, setGeneratedFinalReport] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -109,9 +116,37 @@ export default function InstallationDetailPage() {
     }
   });
 
+  const scheduleForm = useForm<ScheduleValues>({
+    resolver: zodResolver(scheduleSchema),
+    defaultValues: {
+        date: installation?.scheduledDate ? new Date(installation.scheduledDate) : undefined,
+        time: installation?.scheduledDate ? format(new Date(installation.scheduledDate), 'HH:mm') : "",
+        notes: "",
+    }
+  });
+  
+  useEffect(() => {
+    if (installation?.scheduledDate) {
+        scheduleForm.reset({
+            date: new Date(installation.scheduledDate),
+            time: format(new Date(installation.scheduledDate), 'HH:mm'),
+            notes: ""
+        });
+    }
+  }, [installation, scheduleForm]);
+
   const finalReportForm = useForm<FinalReportValues>({
     resolver: zodResolver(finalReportSchema),
   });
+
+  function updateInstallation(updatedInstallation: Installation) {
+      const allInstallations: Installation[] = JSON.parse(localStorage.getItem('installations') || '[]');
+      const updatedAllInstallations = allInstallations.map(inst =>
+        inst.id === updatedInstallation.id ? updatedInstallation : inst
+      );
+      localStorage.setItem('installations', JSON.stringify(updatedAllInstallations));
+      setInstallation(updatedInstallation);
+  }
 
   const handleAddEvent = async (values: EventValues) => {
     if (!installation) return;
@@ -141,18 +176,43 @@ export default function InstallationDetailPage() {
       ...installation,
       events: [...(installation.events || []), newEvent],
     };
-
-    const allInstallations: Installation[] = JSON.parse(localStorage.getItem('installations') || '[]');
-    const updatedAllInstallations = allInstallations.map(inst =>
-      inst.id === installation.id ? updatedInstallation : inst
-    );
-    localStorage.setItem('installations', JSON.stringify(updatedAllInstallations));
-    setInstallation(updatedInstallation);
+    
+    updateInstallation(updatedInstallation);
 
     toast({ title: "Evento Adicionado!", description: `Novo evento do tipo "${values.type}" foi registrado.` });
     eventForm.reset();
     setEventDialogOpen(false);
   };
+
+  const handleSchedule = (values: ScheduleValues) => {
+    if (!installation) return;
+    
+    const [hours, minutes] = values.time?.split(':').map(Number) || [0,0];
+    const scheduledDate = new Date(values.date);
+    scheduledDate.setHours(hours, minutes);
+
+    const formattedDate = format(scheduledDate, "dd 'de' MMMM, yyyy 'às' HH:mm", { locale: ptBR });
+    const description = `Instalação agendada para ${formattedDate}.${values.notes ? `\n\nObservações: ${values.notes}` : ''}`;
+    
+    const newEvent = {
+        id: new Date().toISOString(),
+        date: new Date().toISOString(),
+        type: 'Agendamento',
+        description: description,
+        attachments: [],
+    };
+    
+    const updatedInstallation = {
+      ...installation,
+      scheduledDate: scheduledDate.toISOString(),
+      status: "Agendado" as Installation['status'],
+      events: [...(installation.events || []), newEvent],
+    };
+
+    updateInstallation(updatedInstallation);
+    toast({ title: "Instalação Agendada!", description: `Agendado para ${formattedDate}`});
+    setScheduleDialogOpen(false);
+  }
   
   async function handleGenerateFinalReport(values: FinalReportValues) {
     if (!installerReport) return;
@@ -302,7 +362,7 @@ export default function InstallationDetailPage() {
                                               </FormControl>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-auto p-0" align="start">
-                                              <CalendarComponent mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date()} initialFocus />
+                                              <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date()} initialFocus />
                                             </PopoverContent>
                                           </Popover>
                                           <FormMessage />
@@ -356,6 +416,74 @@ export default function InstallationDetailPage() {
                         <span>{installation.utilityCompany}</span>
                     </div>
                 </CardContent>
+            </Card>
+            
+            <Card>
+                <CardHeader>
+                    <CardTitle>Agendamento</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {installation.scheduledDate ? (
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-sm">
+                                <Clock className="h-4 w-4 text-primary" />
+                                <span className="font-semibold">{format(new Date(installation.scheduledDate), "dd 'de' MMMM, yyyy 'às' HH:mm", { locale: ptBR })}</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">O status da instalação foi atualizado para "Agendado".</p>
+                        </div>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">Nenhuma data agendada.</p>
+                    )}
+                </CardContent>
+                <CardFooter>
+                    <Dialog open={isScheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" className="w-full">
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {installation.scheduledDate ? "Reagendar" : "Agendar"}
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Agendar Instalação</DialogTitle>
+                                <DialogDescription>Selecione a data e hora para a visita técnica.</DialogDescription>
+                            </DialogHeader>
+                             <Form {...scheduleForm}>
+                                <form id="schedule-form" onSubmit={scheduleForm.handleSubmit(handleSchedule)} className="space-y-4 py-4">
+                                    <FormField control={scheduleForm.control} name="date" render={({ field }) => (
+                                        <FormItem className="flex flex-col items-center">
+                                            <FormLabel>Data</FormLabel>
+                                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus/>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}/>
+                                    <FormField control={scheduleForm.control} name="time" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Hora (HH:mm)</FormLabel>
+                                            <FormControl>
+                                                <Input type="time" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}/>
+                                    <FormField control={scheduleForm.control} name="notes" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Observações (opcional)</FormLabel>
+                                            <FormControl>
+                                                <Textarea placeholder="Alguma nota para a equipe?" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}/>
+                                </form>
+                            </Form>
+                            <DialogFooter>
+                                <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                                <Button type="submit" form="schedule-form">Salvar Agendamento</Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </CardFooter>
             </Card>
 
             <Card>
@@ -462,3 +590,5 @@ export default function InstallationDetailPage() {
     </div>
   );
 }
+
+    
