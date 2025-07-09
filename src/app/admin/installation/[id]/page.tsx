@@ -408,21 +408,21 @@ export default function InstallationDetailPage() {
     { 
       label: "Status da Instalação", 
       value: installation.status, 
-      options: Object.values(InstallationStatus),
+      options: InstallationStatus.options,
       key: "status" as keyof Installation,
       icon: Bolt 
     },
     { 
       label: "Status do Projeto", 
       value: installation.projectStatus, 
-      options: Object.values(ProjectStatus),
+      options: ProjectStatus.options,
       key: "projectStatus" as keyof Installation,
       icon: FileCheck2 
     },
     { 
       label: "Status da Homologação", 
       value: installation.homologationStatus, 
-      options: Object.values(HomologationStatus),
+      options: HomologationStatus.options,
       key: "homologationStatus" as keyof Installation,
       icon: CheckCircle 
     },
