@@ -76,9 +76,17 @@ const installationSchema = z.object({
 export type Installation = z.infer<typeof installationSchema>;
 
 const initialInstallations: Installation[] = [
-    { id: 1, clientName: "Condomínio Sol Nascente", address: "Rua A, 123", city: "Campinas", state: "SP", zipCode: "13000-001", installationType: "comercial", utilityCompany: "CPFL", status: "Agendado", reportSubmitted: false, events: [] },
-    { id: 2, clientName: "Maria Silva", address: "Rua B, 456", city: "São Paulo", state: "SP", zipCode: "01000-002", installationType: "residencial", utilityCompany: "Enel", status: "Concluído", reportSubmitted: true, events: [] },
-    { id: 3, clientName: "Supermercado Economia", address: "Av. C, 789", city: "Valinhos", state: "SP", zipCode: "13270-003", installationType: "comercial", utilityCompany: "CPFL", status: "Cancelado", reportSubmitted: false, events: [] },
+    { id: 1, clientName: "Condomínio Sol Nascente", address: "Rua A, 123", city: "Campinas", state: "SP", zipCode: "13000-001", installationType: "comercial", utilityCompany: "CPFL", status: "Agendado", reportSubmitted: false, events: [
+      { id: '1', date: new Date(Date.now() - 86400000 * 2).toISOString(), type: 'Agendamento', description: 'Visita técnica agendada com o cliente.'}
+    ] },
+    { id: 2, clientName: "Maria Silva", address: "Rua B, 456", city: "São Paulo", state: "SP", zipCode: "01000-002", installationType: "residencial", utilityCompany: "Enel", status: "Concluído", reportSubmitted: true, events: [
+      { id: '1', date: new Date(Date.now() - 86400000 * 5).toISOString(), type: 'Agendamento', description: 'Instalação agendada.'},
+      { id: '2', date: new Date(Date.now() - 86400000 * 3).toISOString(), type: 'Problema', description: 'Atraso na entrega do inversor.'},
+      { id: '3', date: new Date(Date.now() - 86400000 * 1).toISOString(), type: 'Conclusão', description: 'Instalação finalizada e comissionada com sucesso.'}
+    ]},
+    { id: 3, clientName: "Supermercado Economia", address: "Av. C, 789", city: "Valinhos", state: "SP", zipCode: "13270-003", installationType: "comercial", utilityCompany: "CPFL", status: "Cancelado", reportSubmitted: false, events: [
+      { id: '1', date: new Date(Date.now() - 86400000 * 10).toISOString(), type: 'Nota', description: 'Cliente solicitou cancelamento por motivos financeiros.'}
+    ] },
 ];
 
 const createSampleReport = () => {
@@ -455,5 +463,3 @@ export default function AdminPage() {
     </>
   );
 }
-
-  

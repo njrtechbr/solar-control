@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar as CalendarIcon, ArrowLeft, Building, Home, User, Mail, Phone, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar, MessageSquare, Check, Sparkles, Copy, FileCheck2, Camera, Video, Bolt } from "lucide-react";
+import { Calendar as CalendarIcon, ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar, MessageSquare, Check, Sparkles, Copy, FileCheck2, Camera, Video, Bolt } from "lucide-react";
 
 import { type Installation } from "@/app/admin/page";
 import { Button } from "@/components/ui/button";
@@ -44,12 +44,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { generateFinalReport, type GenerateFinalReportInput } from "@/ai/flows/generate-report-flow";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 const eventSchema = z.object({
@@ -82,7 +82,6 @@ export default function InstallationDetailPage() {
   const [installation, setInstallation] = useState<Installation | null>(null);
   const [isEventDialogOpen, setEventDialogOpen] = useState(false);
   const [installerReport, setInstallerReport] = useState<any | null>(null);
-  const [isReportDialogOpen, setReportDialogOpen] = useState(false);
   const [generatedFinalReport, setGeneratedFinalReport] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -214,95 +213,6 @@ export default function InstallationDetailPage() {
         <div className="flex-1">
           <h1 className="font-semibold text-lg md:text-xl truncate">{installation.clientName}</h1>
         </div>
-         <Dialog open={isReportDialogOpen} onOpenChange={setReportDialogOpen}>
-            <DialogTrigger asChild>
-                <Button disabled={!installation.reportSubmitted}>
-                    <FileCheck2 className="mr-2 h-4 w-4"/> Ver Relatório do Instalador
-                </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-3xl">
-                <DialogHeader>
-                    <DialogTitle>Relatório de Instalação - {installerReport?.clientName}</DialogTitle>
-                    <DialogDescription>Detalhes completos preenchidos pelo instalador.</DialogDescription>
-                </DialogHeader>
-                <ScrollArea className="max-h-[70vh] pr-6">
-                {installerReport && (
-                    <div className="space-y-6 py-4 text-sm">
-                        <Separator />
-                         <div>
-                            <h3 className="font-semibold text-lg mb-2 flex items-center gap-2"><Camera /> Documentação Fotográfica</h3>
-                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                {installerReport.photo_uploads && installerReport.photo_uploads.map((photo: any, index: number) => (
-                                    photo.dataUrl && (
-                                        <div key={index} className="space-y-1">
-                                            <a href={photo.dataUrl} target="_blank" rel="noopener noreferrer">
-                                                <img src={photo.dataUrl} alt={photo.annotation || `Foto ${index + 1}`} className="rounded-md object-cover aspect-square hover:opacity-80 transition-opacity" />
-                                            </a>
-                                            <p className="text-xs text-muted-foreground truncate">{photo.annotation || `Foto ${index + 1}`}</p>
-                                        </div>
-                                    )
-                                ))}
-                            </div>
-                        </div>
-                        <Separator />
-                        <div>
-                            <h3 className="font-semibold text-lg mb-2 flex items-center gap-2"><Video /> Vídeo da Instalação</h3>
-                            {installerReport.installationVideoDataUrl ? (
-                                <video src={installerReport.installationVideoDataUrl} controls className="w-full rounded-md" />
-                            ) : (
-                                <p>Nenhum vídeo enviado.</p>
-                            )}
-                        </div>
-                        <Separator />
-                        <div className="space-y-4 pt-4">
-                            <h3 className="font-semibold text-lg flex items-center gap-2"><Sparkles className="text-primary"/>Gerador de Relatório Final</h3>
-                            <Form {...finalReportForm}>
-                                <form onSubmit={finalReportForm.handleSubmit(handleGenerateFinalReport)} className="space-y-4">
-                                    <FormField control={finalReportForm.control} name="protocolNumber" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Número de Protocolo</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="Insira o número do protocolo" {...field}/>
-                                            </FormControl>
-                                            <FormMessage/>
-                                        </FormItem>
-                                    )}/>
-                                    <Button type="submit" disabled={isGenerating}>
-                                        {isGenerating ? "Gerando..." : "Gerar Relatório Final com IA"}
-                                    </Button>
-                                </form>
-                            </Form>
-                            {isGenerating && (
-                                <div className="space-y-2 pt-4">
-                                    <Skeleton className="h-4 w-1/4" />
-                                    <Skeleton className="h-4 w-full" />
-                                    <Skeleton className="h-4 w-full" />
-                                    <Skeleton className="h-4 w-3/4" />
-                                </div>
-                            )}
-                            {generatedFinalReport && (
-                                <div className="space-y-2 pt-4">
-                                    <div className="flex justify-between items-center">
-                                       <h4 className="font-semibold">Relatório Final Gerado</h4>
-                                       <Button variant="ghost" size="sm" onClick={() => copyToClipboard(generatedFinalReport, "Relatório copiado!")}>
-                                            <Copy className="mr-2 h-4 w-4"/>
-                                            Copiar
-                                       </Button>
-                                    </div>
-                                    <p className="p-4 border rounded-md bg-muted/50 whitespace-pre-wrap">{generatedFinalReport}</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-                </ScrollArea>
-                <DialogFooter>
-                    <DialogClose asChild>
-                        <Button variant="outline">Fechar</Button>
-                    </DialogClose>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
       </header>
 
       <main className="flex-1 p-4 md:p-6 grid gap-6 md:grid-cols-3 lg:grid-cols-4">
@@ -313,26 +223,35 @@ export default function InstallationDetailPage() {
                     <CardDescription>Acompanhe tudo que acontece nesta instalação.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                   <div className="space-y-8 relative pl-6 before:absolute before:inset-y-0 before:w-px before:bg-border before:left-0">
+                   <div className="space-y-8 relative pl-6 before:absolute before:inset-y-0 before:w-px before:bg-border before:left-0 before:ml-3">
+                       {(!installation.events || installation.events.length === 0) && (
+                         <div className="text-center text-muted-foreground py-8">
+                            <MessageSquare className="mx-auto h-12 w-12" />
+                            <p className="mt-4">Nenhum evento registrado ainda.</p>
+                            <p className="text-sm">Use o botão abaixo para adicionar o primeiro evento.</p>
+                         </div>
+                       )}
                        {[...(installation.events || [])].reverse().map(event => {
                            const EventIcon = EVENT_TYPES.find(e => e.value === event.type)?.icon || MessageSquare;
                            return (
                                <div key={event.id} className="relative">
-                                    <div className="absolute -left-9 top-1.5 h-6 w-6 bg-background flex items-center justify-center rounded-full border">
+                                    <div className="absolute -left-6 top-0 h-6 w-6 bg-background flex items-center justify-center rounded-full border">
                                         <EventIcon className="h-4 w-4 text-muted-foreground" />
                                     </div>
-                                    <p className="text-sm text-muted-foreground">{format(new Date(event.date), "dd 'de' MMM, yyyy 'às' HH:mm", { locale: ptBR })}</p>
-                                    <h4 className="font-semibold">{event.type}</h4>
-                                    <p className="text-muted-foreground text-sm">{event.description}</p>
-                                     {event.attachments && event.attachments.length > 0 && (
-                                        <div className="mt-2 space-y-1">
-                                            {event.attachments.map((file, idx) => (
-                                                <a key={idx} href={file.dataUrl} download={file.name} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-2">
-                                                    <Paperclip className="h-3 w-3" /> {file.name}
-                                                </a>
-                                            ))}
-                                        </div>
-                                    )}
+                                    <div className="pl-6">
+                                      <p className="text-sm text-muted-foreground">{format(new Date(event.date), "dd 'de' MMMM, yyyy 'às' HH:mm", { locale: ptBR })}</p>
+                                      <h4 className="font-semibold">{event.type}</h4>
+                                      <p className="text-muted-foreground text-sm whitespace-pre-wrap">{event.description}</p>
+                                      {event.attachments && event.attachments.length > 0 && (
+                                          <div className="mt-2 space-y-1">
+                                              {event.attachments.map((file, idx) => (
+                                                  <a key={idx} href={file.dataUrl} download={file.name} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-2 max-w-xs truncate">
+                                                      <Paperclip className="h-3 w-3 flex-shrink-0" /> <span className="truncate">{file.name}</span>
+                                                  </a>
+                                              ))}
+                                          </div>
+                                      )}
+                                    </div>
                                </div>
                            )
                        })}
@@ -398,11 +317,11 @@ export default function InstallationDetailPage() {
                                           <FormMessage />
                                         </FormItem>
                                       )}/>
-                                    <FormField control={eventForm.control} name="attachments" render={({ field }) => (
+                                    <FormField control={eventForm.control} name="attachments" render={({ field: { onChange, ...field }}) => (
                                         <FormItem>
                                             <FormLabel>Anexos</FormLabel>
                                             <FormControl>
-                                                <Input type="file" multiple onChange={(e) => field.onChange(e.target.files)} />
+                                                <Input type="file" multiple onChange={(e) => onChange(e.target.files)} {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -438,10 +357,108 @@ export default function InstallationDetailPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Relatório do Instalador</CardTitle>
+                     <CardDescription>Dados e mídias da instalação.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {!installation.reportSubmitted ? (
+                        <p className="text-sm text-muted-foreground">O relatório ainda não foi enviado pelo instalador.</p>
+                    ) : (
+                        <Tabs defaultValue="report">
+                           <TabsContent value="report" className="mt-0">
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button className="w-full"><FileCheck2 className="mr-2"/> Ver Relatório Completo</Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-4xl">
+                                        <DialogHeader>
+                                            <DialogTitle>Relatório de Instalação - {installerReport?.clientName}</DialogTitle>
+                                            <DialogDescription>Detalhes completos preenchidos pelo instalador.</DialogDescription>
+                                        </DialogHeader>
+                                        <ScrollArea className="max-h-[70vh] pr-6">
+                                            {installerReport && (
+                                                <div className="space-y-6 py-4 text-sm">
+                                                    <div>
+                                                        <h3 className="font-semibold text-lg mb-2 flex items-center gap-2"><Camera /> Documentação Fotográfica</h3>
+                                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                                            {installerReport.photo_uploads && installerReport.photo_uploads.map((photo: any, index: number) => (
+                                                                photo.dataUrl && (
+                                                                    <div key={index} className="space-y-1">
+                                                                        <a href={photo.dataUrl} target="_blank" rel="noopener noreferrer">
+                                                                            <img src={photo.dataUrl} alt={photo.annotation || `Foto ${index + 1}`} className="rounded-md object-cover aspect-square hover:opacity-80 transition-opacity" />
+                                                                        </a>
+                                                                        <p className="text-xs text-muted-foreground truncate">{photo.annotation || `Foto ${index + 1}`}</p>
+                                                                    </div>
+                                                                )
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                    <Separator />
+                                                    <div>
+                                                        <h3 className="font-semibold text-lg mb-2 flex items-center gap-2"><Video /> Vídeo da Instalação</h3>
+                                                        {installerReport.installationVideoDataUrl ? (
+                                                            <video src={installerReport.installationVideoDataUrl} controls className="w-full rounded-md" />
+                                                        ) : (
+                                                            <p>Nenhum vídeo enviado.</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </ScrollArea>
+                                    </DialogContent>
+                                </Dialog>
+                            </TabsContent>
+                        </Tabs>
+                    )}
+                </CardContent>
+                 <CardFooter className="flex flex-col items-stretch space-y-4">
+                     <Separator />
+                     <h3 className="font-semibold text-lg flex items-center gap-2 pt-2"><Sparkles className="text-primary"/>Gerador de Relatório Final</h3>
+                     <Form {...finalReportForm}>
+                        <form onSubmit={finalReportForm.handleSubmit(handleGenerateFinalReport)} className="space-y-4">
+                            <FormField control={finalReportForm.control} name="protocolNumber" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Número de Protocolo</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Insira o número do protocolo" {...field} disabled={!installation.reportSubmitted}/>
+                                    </FormControl>
+                                    <FormMessage/>
+                                </FormItem>
+                            )}/>
+                            <Button type="submit" disabled={isGenerating || !installation.reportSubmitted} className="w-full">
+                                {isGenerating ? "Gerando..." : "Gerar Relatório com IA"}
+                            </Button>
+                        </form>
+                    </Form>
+                     {isGenerating && (
+                        <div className="space-y-2 pt-4">
+                            <Skeleton className="h-4 w-1/4" />
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-3/4" />
+                        </div>
+                    )}
+                    {generatedFinalReport && (
+                        <div className="space-y-2 pt-4">
+                            <div className="flex justify-between items-center">
+                               <h4 className="font-semibold">Relatório Final Gerado</h4>
+                               <Button variant="ghost" size="sm" onClick={() => copyToClipboard(generatedFinalReport, "Relatório copiado!")}>
+                                    <Copy className="mr-2 h-4 w-4"/>
+                                    Copiar
+                               </Button>
+                            </div>
+                            <ScrollArea className="h-48">
+                               <p className="p-4 border rounded-md bg-muted/50 whitespace-pre-wrap">{generatedFinalReport}</p>
+                            </ScrollArea>
+                        </div>
+                    )}
+                </CardFooter>
+            </Card>
         </div>
       </main>
     </div>
   );
 }
-
-  
