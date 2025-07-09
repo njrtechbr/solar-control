@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Video, Bolt, Clock, CheckCircle, XCircle, FileText, Activity, FileJson, Files, Upload, Camera, ListChecks } from "lucide-react";
+import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Video, Bolt, Clock, CheckCircle, XCircle, FileText, Activity, FileJson, Files, Upload, Camera, ListChecks, Hourglass, Send, ThumbsUp, ThumbsDown } from "lucide-react";
 
 import { type Installation } from "@/app/admin/page";
 import { Button } from "@/components/ui/button";
@@ -418,7 +418,39 @@ export default function InstallationDetailPage() {
       })) || []
     ) || [])
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
+  
+  const processSteps = [
+    {
+      name: "Protocolo",
+      status: installation.protocolNumber ? "completed" : "pending",
+      Icon: FileText,
+      description: installation.protocolNumber ? `Nº ${installation.protocolNumber}` : "Pendente",
+    },
+    {
+      name: "Projeto",
+      status: installation.projectStatus === "Aprovado" ? "completed" : (installation.projectStatus === "Reprovado" ? "error" : (installation.projectStatus === "Não Enviado" ? "pending" : "in_progress")),
+      Icon: installation.projectStatus === "Aprovado" ? ThumbsUp : (installation.projectStatus === "Reprovado" ? ThumbsDown : (installation.projectStatus === "Não Enviado" ? Hourglass : Send)),
+      description: installation.projectStatus,
+    },
+    {
+      name: "Agendamento",
+      status: installation.scheduledDate ? "completed" : "pending",
+      Icon: CalendarIcon,
+      description: installation.scheduledDate ? format(new Date(installation.scheduledDate), "dd/MM/yy 'às' HH:mm") : "Não agendado",
+    },
+    {
+      name: "Instalação",
+      status: installation.status === "Concluído" ? "completed" : (installation.status === "Cancelado" ? "error" : (installation.status === "Em Andamento" ? "in_progress" : "pending")),
+      Icon: installation.status === "Concluído" ? CheckCircle : (installation.status === "Cancelado" ? XCircle : (installation.status === "Em Andamento" ? Bolt : Hourglass)),
+      description: installation.status,
+    },
+    {
+      name: "Homologação",
+      status: installation.homologationStatus === "Aprovado" ? "completed" : (installation.homologationStatus === "Reprovado" ? "error" : "pending"),
+      Icon: installation.homologationStatus === "Aprovado" ? ThumbsUp : (installation.homologationStatus === "Reprovado" ? ThumbsDown : Hourglass),
+      description: installation.homologationStatus,
+    },
+  ];
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -430,10 +462,116 @@ export default function InstallationDetailPage() {
         <div className="flex-1">
           <h1 className="font-semibold text-lg md:text-xl truncate">{installation.clientName}</h1>
         </div>
+        <Dialog open={isProcessDialogOpen} onOpenChange={setProcessDialogOpen}>
+            <DialogTrigger asChild>
+                <Button>
+                    <ListChecks className="mr-2 h-4 w-4" /> Gerenciar Processo
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Gerenciar Processo com a Cia. de Energia</DialogTitle>
+                </DialogHeader>
+                <Form {...processForm}>
+                    <form id="process-form" className="space-y-4" onSubmit={processForm.handleSubmit(handleProcessUpdate)}>
+                        <FormField control={processForm.control} name="protocolNumber" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Nº do Protocolo</FormLabel>
+                                <FormControl><Input placeholder="Número do protocolo" {...field} /></FormControl>
+                            </FormItem>
+                        )}/>
+                        <FormField control={processForm.control} name="protocolDate" render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                              <FormLabel>Data do Protocolo</FormLabel>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <FormControl>
+                                    <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                      {field.value ? format(field.value, 'PPP', { locale: ptBR }) : <span>Escolha uma data</span>}
+                                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                  </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                  <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                </PopoverContent>
+                              </Popover>
+                            </FormItem>
+                          )}/>
+                        <FormField control={processForm.control} name="projectStatus" render={({ field }) => (
+                            <FormItem><FormLabel>Status do Projeto</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="Não Enviado">Não Enviado</SelectItem>
+                                        <SelectItem value="Enviado para Análise">Enviado para Análise</SelectItem>
+                                        <SelectItem value="Aprovado">Aprovado</SelectItem>
+                                        <SelectItem value="Reprovado">Reprovado</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </FormItem>
+                        )}/>
+                        <FormField control={processForm.control} name="homologationStatus" render={({ field }) => (
+                            <FormItem><FormLabel>Status da Homologação</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="Pendente">Pendente</SelectItem>
+                                        <SelectItem value="Aprovado">Aprovado</SelectItem>
+                                        <SelectItem value="Reprovado">Reprovado</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </FormItem>
+                        )}/>
+                    </form>
+                </Form>
+                <DialogFooter>
+                    <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                    <Button type="submit" form="process-form">Salvar Alterações</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
       </header>
 
       <main className="flex-1 p-4 md:p-6 grid gap-6 md:grid-cols-3 lg:grid-cols-4">
         <div className="md:col-span-2 lg:col-span-3 space-y-6">
+
+             <Card>
+                <CardHeader>
+                  <CardTitle>Linha do Tempo do Processo</CardTitle>
+                  <CardDescription>Acompanhe o andamento da instalação em cada etapa principal.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center space-x-2 md:space-x-4 overflow-x-auto pb-4">
+                    {processSteps.map((step, index) => (
+                      <div key={step.name} className="flex items-center w-full">
+                        <div className="flex flex-col items-center">
+                          <div className={cn(
+                            "flex h-10 w-10 items-center justify-center rounded-full border-2",
+                            step.status === "completed" && "bg-primary border-primary text-primary-foreground",
+                            step.status === "in_progress" && "bg-blue-500 border-blue-500 text-white",
+                            step.status === "error" && "bg-destructive border-destructive text-destructive-foreground",
+                            step.status === "pending" && "bg-muted border-border text-muted-foreground",
+                          )}>
+                            <step.Icon className="h-5 w-5" />
+                          </div>
+                          <div className="mt-2 text-center">
+                            <p className="font-semibold text-sm">{step.name}</p>
+                            <p className="text-xs text-muted-foreground">{step.description}</p>
+                          </div>
+                        </div>
+                        {index < processSteps.length - 1 && (
+                          <div className={cn(
+                            "flex-auto border-t-2 h-0",
+                            step.status === "completed" ? "border-primary" : "border-border"
+                          )} />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+             </Card>
+
              <Tabs defaultValue="overview" className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="overview"><Activity className="mr-2 h-4 w-4"/>Visão Geral</TabsTrigger>
@@ -727,97 +865,6 @@ export default function InstallationDetailPage() {
                         <span>{installation.utilityCompany}</span>
                     </div>
                 </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Painel de Controle do Processo</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-1">
-                        <Label>Protocolo Cia. Energia</Label>
-                        <p className="text-sm text-muted-foreground">{installation.protocolNumber || "Não informado"} {installation.protocolDate ? `em ${format(new Date(installation.protocolDate), 'dd/MM/yy')}`: ''}</p>
-                    </div>
-                    <div className="space-y-1">
-                        <Label>Status do Projeto</Label>
-                         <p className="text-sm font-medium">{installation.projectStatus}</p>
-                    </div>
-                     <div className="space-y-1">
-                        <Label>Status da Homologação</Label>
-                         <p className="text-sm font-medium">{installation.homologationStatus}</p>
-                    </div>
-                </CardContent>
-                <CardFooter>
-                    <Dialog open={isProcessDialogOpen} onOpenChange={setProcessDialogOpen}>
-                        <DialogTrigger asChild>
-                            <Button variant="outline" className="w-full">
-                                <ListChecks className="mr-2 h-4 w-4" /> Gerenciar Processo
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Gerenciar Processo com a Cia. de Energia</DialogTitle>
-                            </DialogHeader>
-                            <Form {...processForm}>
-                                <form id="process-form" className="space-y-4" onSubmit={processForm.handleSubmit(handleProcessUpdate)}>
-                                    <FormField control={processForm.control} name="protocolNumber" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Nº do Protocolo</FormLabel>
-                                            <FormControl><Input placeholder="Número do protocolo" {...field} /></FormControl>
-                                        </FormItem>
-                                    )}/>
-                                    <FormField control={processForm.control} name="protocolDate" render={({ field }) => (
-                                        <FormItem className="flex flex-col">
-                                          <FormLabel>Data do Protocolo</FormLabel>
-                                          <Popover>
-                                            <PopoverTrigger asChild>
-                                              <FormControl>
-                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                  {field.value ? format(field.value, 'PPP', { locale: ptBR }) : <span>Escolha uma data</span>}
-                                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                </Button>
-                                              </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                              <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                                            </PopoverContent>
-                                          </Popover>
-                                        </FormItem>
-                                      )}/>
-                                    <FormField control={processForm.control} name="projectStatus" render={({ field }) => (
-                                        <FormItem><FormLabel>Status do Projeto</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="Não Enviado">Não Enviado</SelectItem>
-                                                    <SelectItem value="Enviado para Análise">Enviado para Análise</SelectItem>
-                                                    <SelectItem value="Aprovado">Aprovado</SelectItem>
-                                                    <SelectItem value="Reprovado">Reprovado</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </FormItem>
-                                    )}/>
-                                    <FormField control={processForm.control} name="homologationStatus" render={({ field }) => (
-                                        <FormItem><FormLabel>Status da Homologação</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="Pendente">Pendente</SelectItem>
-                                                    <SelectItem value="Aprovado">Aprovado</SelectItem>
-                                                    <SelectItem value="Reprovado">Reprovado</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </FormItem>
-                                    )}/>
-                                </form>
-                            </Form>
-                            <DialogFooter>
-                                <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-                                <Button type="submit" form="process-form">Salvar Alterações</Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
-                </CardFooter>
             </Card>
 
             <Card>
