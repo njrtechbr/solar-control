@@ -83,18 +83,76 @@ const installationSchema = z.object({
 export type Installation = z.infer<typeof installationSchema>;
 
 const initialInstallations: Installation[] = [
-    { id: 1, clientName: "Condomínio Sol Nascente", address: "Rua A, 123", city: "Campinas", state: "SP", zipCode: "13000-001", installationType: "comercial", utilityCompany: "CPFL", status: "Agendado", reportSubmitted: false, scheduledDate: new Date(Date.now() + 86400000 * 3).toISOString(), events: [
-      { id: '1', date: new Date(Date.now() - 86400000 * 2).toISOString(), type: 'Agendamento', description: 'Visita técnica agendada com o cliente.'}
-    ], documents: [] },
-    { id: 2, clientName: "Maria Silva", address: "Rua B, 456", city: "São Paulo", state: "SP", zipCode: "01000-002", installationType: "residencial", utilityCompany: "Enel", status: "Concluído", reportSubmitted: true, events: [
-      { id: '1', date: new Date(Date.now() - 86400000 * 5).toISOString(), type: 'Agendamento', description: 'Instalação agendada.'},
-      { id: '2', date: new Date(Date.now() - 86400000 * 3).toISOString(), type: 'Problema', description: 'Atraso na entrega do inversor.'},
-      { id: '3', date: new Date(Date.now() - 86400000 * 1).toISOString(), type: 'Conclusão', description: 'Instalação finalizada e comissionada com sucesso.'}
-    ], documents: []},
-    { id: 3, clientName: "Supermercado Economia", address: "Av. C, 789", city: "Valinhos", state: "SP", zipCode: "13270-003", installationType: "comercial", utilityCompany: "CPFL", status: "Cancelado", reportSubmitted: false, events: [
-      { id: '1', date: new Date(Date.now() - 86400000 * 10).toISOString(), type: 'Nota', description: 'Cliente solicitou cancelamento por motivos financeiros.'}
-    ], documents: [] },
-    { id: 4, clientName: "João Pereira", address: "Rua D, 101", city: "Jundiaí", state: "SP", zipCode: "13201-004", installationType: "residencial", utilityCompany: "CPFL", status: "Pendente", reportSubmitted: false, events: [], documents: [] },
+    { 
+      id: 1, 
+      clientName: "Condomínio Sol Nascente", 
+      address: "Rua A, 123", 
+      city: "Campinas", 
+      state: "SP", 
+      zipCode: "13000-001", 
+      installationType: "comercial", 
+      utilityCompany: "CPFL", 
+      status: "Agendado", 
+      reportSubmitted: false, 
+      scheduledDate: new Date(Date.now() + 86400000 * 3).toISOString(), 
+      events: [
+        { id: '1', date: new Date(Date.now() - 86400000 * 2).toISOString(), type: 'Agendamento', description: 'Visita técnica agendada com o síndico para a próxima semana.'}
+      ], 
+      documents: [
+        { name: 'projeto_preliminar.pdf', dataUrl: '#', type: 'application/pdf', date: new Date(Date.now() - 86400000 * 3).toISOString() }
+      ] 
+    },
+    { 
+      id: 2, 
+      clientName: "Maria Silva", 
+      address: "Rua B, 456", 
+      city: "São Paulo", 
+      state: "SP", 
+      zipCode: "01000-002", 
+      installationType: "residencial", 
+      utilityCompany: "Enel", 
+      status: "Concluído", 
+      reportSubmitted: true, 
+      events: [
+        { id: '1', date: new Date(Date.now() - 86400000 * 5).toISOString(), type: 'Agendamento', description: 'Instalação agendada.'},
+        { id: '2', date: new Date(Date.now() - 86400000 * 3).toISOString(), type: 'Problema', description: 'Atraso na entrega do inversor. Resolvido com o fornecedor no mesmo dia.', attachments: [{ name: 'nota_fiscal_inversor.pdf', dataUrl: '#'}]},
+        { id: '3', date: new Date(Date.now() - 86400000 * 1).toISOString(), type: 'Conclusão', description: 'Instalação finalizada e comissionada com sucesso.'}
+      ], 
+      documents: [
+         { name: 'art_assinada.pdf', dataUrl: '#', type: 'application/pdf', date: new Date(Date.now() - 86400000 * 6).toISOString() },
+         { name: 'contrato_servico.pdf', dataUrl: '#', type: 'application/pdf', date: new Date(Date.now() - 86400000 * 7).toISOString() }
+      ]
+    },
+    { 
+      id: 3, 
+      clientName: "Supermercado Economia", 
+      address: "Av. C, 789", 
+      city: "Valinhos", 
+      state: "SP", 
+      zipCode: "13270-003", 
+      installationType: "comercial", 
+      utilityCompany: "CPFL", 
+      status: "Cancelado", 
+      reportSubmitted: false, 
+      events: [
+        { id: '1', date: new Date(Date.now() - 86400000 * 10).toISOString(), type: 'Nota', description: 'Cliente solicitou cancelamento por motivos financeiros. Arquivar.'}
+      ], 
+      documents: [] 
+    },
+    { 
+      id: 4, 
+      clientName: "João Pereira", 
+      address: "Rua D, 101", 
+      city: "Jundiaí", 
+      state: "SP", 
+      zipCode: "13201-004", 
+      installationType: "residencial", 
+      utilityCompany: "CPFL", 
+      status: "Pendente", 
+      reportSubmitted: false, 
+      events: [], 
+      documents: [] 
+    },
 ];
 
 const createSampleReport = () => {
@@ -104,10 +162,17 @@ const createSampleReport = () => {
       strings: [
           { voltage: 450, plates: 10 },
           { voltage: 452, plates: 10 },
+          { voltage: 0, plates: 0 },
+          { voltage: 0, plates: 0 },
+          { voltage: 0, plates: 0 },
+          { voltage: 0, plates: 0 },
       ],
       phase1Neutro: 220,
       phase2Neutro: 219,
+      phase3Neutro: 0,
       phase1phase2: 380,
+      phase1phase3: 0,
+      phase2phase3: 0,
       phaseTerra: 220,
       neutroTerra: 0.5,
       cableMeterToBreaker: "16mm",
@@ -117,9 +182,12 @@ const createSampleReport = () => {
       dataloggerConnected: true,
       observations: "Instalação realizada com sucesso, sem intercorrências. Cliente orientado sobre o monitoramento pelo aplicativo.",
       photo_uploads: [
-          { dataUrl: "https://placehold.co/400x400.png", annotation: "Visão geral dos painéis" },
-          { dataUrl: "https://placehold.co/400x400.png", annotation: "Inversor instalado" },
+          { file: null, dataUrl: "https://placehold.co/600x400.png", annotation: "Visão geral dos painéis solares no telhado." },
+          { file: null, dataUrl: "https://placehold.co/600x400.png", annotation: "Inversor instalado na parede da garagem." },
+          { file: null, dataUrl: "https://placehold.co/600x400.png", annotation: "Teste de goteiras após a instalação." },
+          { file: null, dataUrl: "https://placehold.co/600x400.png", annotation: "Fachada da residência." },
       ],
+      installationVideo: null,
       installationVideoDataUrl: "https://placehold.co/480x360.mp4",
   };
 };
