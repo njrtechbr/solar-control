@@ -125,8 +125,8 @@ export default function InstallationDetailPage() {
   const scheduleForm = useForm<ScheduleValues>({
     resolver: zodResolver(scheduleSchema),
     defaultValues: {
-        date: installation?.scheduledDate ? new Date(installation.scheduledDate) : undefined,
-        time: installation?.scheduledDate ? format(new Date(installation.scheduledDate), 'HH:mm') : "",
+        date: undefined,
+        time: "",
         notes: "",
     }
   });
@@ -140,6 +140,12 @@ export default function InstallationDetailPage() {
         scheduleForm.reset({
             date: new Date(installation.scheduledDate),
             time: format(new Date(installation.scheduledDate), 'HH:mm'),
+            notes: ""
+        });
+    } else {
+        scheduleForm.reset({
+            date: undefined,
+            time: "",
             notes: ""
         });
     }
@@ -799,5 +805,3 @@ export default function InstallationDetailPage() {
     </div>
   );
 }
-
-    
