@@ -74,6 +74,35 @@ const initialInstallations: Installation[] = [
     { id: 3, clientName: "Supermercado Economia", address: "Av. C, 789", city: "Valinhos", state: "SP", zipCode: "13270-003", installationType: "comercial", utilityCompany: "CPFL", status: "Cancelado", reportSubmitted: false },
 ];
 
+const createSampleReport = () => {
+  return {
+      clientName: "Maria Silva",
+      panelPower: 550,
+      strings: [
+          { voltage: 450, plates: 10 },
+          { voltage: 452, plates: 10 },
+      ],
+      phase1Neutro: 220,
+      phase2Neutro: 219,
+      phase1phase2: 380,
+      phaseTerra: 220,
+      neutroTerra: 0.5,
+      cableMeterToBreaker: "16mm",
+      cableBreakerToInverter: "10mm",
+      generalBreaker: "63A",
+      inverterBreaker: "50A",
+      dataloggerConnected: true,
+      observations: "Instalação realizada com sucesso, sem intercorrências. Cliente orientado sobre o monitoramento pelo aplicativo.",
+      photo_uploads: [
+          { dataUrl: "https://placehold.co/400x400.png", annotation: "Visão geral dos painéis" },
+          { dataUrl: "https://placehold.co/400x400.png", annotation: "Inversor instalado" },
+          { dataUrl: "https://placehold.co/400x400.png", annotation: "Aterramento concluído" },
+          { dataUrl: "https://placehold.co/400x400.png", annotation: "Etiqueta do inversor" },
+      ],
+      installationVideoDataUrl: "https://placehold.co/480x360.mp4", // Placeholder for video
+  };
+};
+
 
 export default function AdminPage() {
   const [installations, setInstallations] = useState<Installation[]>([]);
@@ -88,12 +117,19 @@ export default function AdminPage() {
     const savedInstallations = localStorage.getItem('installations');
     const loadedInstallations = savedInstallations ? JSON.parse(savedInstallations) : initialInstallations;
     
+    // Check for a sample report for "Maria Silva" and create if it doesn't exist
+    const sampleReportKey = 'report_Maria Silva';
+    if (!localStorage.getItem(sampleReportKey)) {
+        localStorage.setItem(sampleReportKey, JSON.stringify(createSampleReport()));
+    }
+
     // Check for submitted reports
     const updatedInstallations = loadedInstallations.map((inst: Installation) => {
         const report = localStorage.getItem(`report_${inst.clientName}`);
         return { ...inst, reportSubmitted: !!report };
     });
     setInstallations(updatedInstallations);
+
   }, []);
 
   const saveInstallations = (newInstallations: Installation[]) => {
@@ -313,10 +349,10 @@ export default function AdminPage() {
                         </div>
                      </div>
                       <div className="text-sm text-muted-foreground">
-                        <p className="flex items-center gap-2">
+                        <div className="flex items-center gap-2">
                            <Bolt size={14} /> Concessionária:
                            <span className="font-medium text-foreground">{inst.utilityCompany}</span>
-                        </p>
+                        </div>
                      </div>
                   </CardContent>
                   <CardFooter className="flex-col items-stretch gap-2">
@@ -451,7 +487,7 @@ export default function AdminPage() {
                         <div>
                             <h3 className="font-semibold text-lg mb-2">Medições das Strings (VCC)</h3>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                {viewingReport.strings.map((s: any, i: number) => (
+                                {viewingReport.strings && viewingReport.strings.map((s: any, i: number) => (
                                     (s.voltage || s.plates) && (
                                     <div key={i} className="p-2 border rounded-md bg-muted/50">
                                         <p className="font-medium">String {i+1}</p> 
@@ -540,3 +576,5 @@ export default function AdminPage() {
     </>
   );
 }
+
+    
