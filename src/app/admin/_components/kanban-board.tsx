@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -39,6 +39,12 @@ const KANBAN_COLUMNS: { id: InstallationStatus; title: string }[] = [
 
 export function KanbanBoard({ installations, onStatusChange }: KanbanBoardProps) {
   const [activeInstallation, setActiveInstallation] = useState<Installation | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
 
   const columnsId = useMemo(() => KANBAN_COLUMNS.map((col) => col.id), []);
 
@@ -126,7 +132,7 @@ export function KanbanBoard({ installations, onStatusChange }: KanbanBoardProps)
         </SortableContext>
       </div>
 
-      {createPortal(
+      {isMounted && createPortal(
         <DragOverlay>
           {activeInstallation && (
              <Card className="w-full opacity-75">
@@ -159,4 +165,3 @@ export function KanbanBoard({ installations, onStatusChange }: KanbanBoardProps)
     </DndContext>
   );
 }
-
