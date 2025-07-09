@@ -19,9 +19,9 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from "@/components/ui/card";
 import {
   Form,
@@ -31,6 +31,12 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
@@ -104,163 +110,197 @@ export default function InstallationLogPage() {
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col">
-      <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 md:px-6">
+    <div className="flex min-h-screen w-full flex-col bg-background">
+      <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/95 backdrop-blur-sm px-4">
         <div className="flex items-center gap-2">
           <SunMedium className="h-7 w-7 text-primary" />
           <h1 className="text-xl font-bold text-foreground">SolarView Pro</h1>
         </div>
       </header>
-      <main className="flex-1 p-4 md:p-8 lg:p-10">
+      <main className="flex-1 p-4">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="mx-auto max-w-4xl space-y-8">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><User /> Informações do Cliente</CardTitle>
-                <CardDescription>Detalhes do cliente e da usina solar.</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-6 md:grid-cols-2">
-                <FormField control={form.control} name="clientName" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cliente - Nome do Grupo</FormLabel>
-                      <FormControl><Input placeholder="Ex: Condomínio Sol Nascente" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField control={form.control} name="panelPower" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Potência do Painel (Wp)</FormLabel>
-                      <FormControl><Input type="number" placeholder="Ex: 550" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Power /> Medições das Strings (VCC)</CardTitle>
-                <CardDescription>Insira a tensão (V) e a quantidade de placas por string.</CardDescription>
-              </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-x-6 gap-y-4 md:grid-cols-4 lg:grid-cols-6">
-                {Array.from({ length: 6 }).map((_, index) => (
-                  <div key={index} className="space-y-4 rounded-lg border p-3">
-                    <p className="text-center font-semibold text-sm">String {index + 1}</p>
-                    <FormField control={form.control} name={`strings.${index}.voltage`} render={({ field }) => (
+          <form onSubmit={form.handleSubmit(onSubmit)} className="mx-auto max-w-2xl space-y-6">
+            <Accordion type="multiple" defaultValue={['client-info']} className="w-full">
+              <AccordionItem value="client-info">
+                <AccordionTrigger>
+                  <div className="flex items-center gap-3">
+                    <User className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">Informações do Cliente</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pt-4">
+                  <div className="space-y-4 rounded-lg border p-4">
+                    <FormField control={form.control} name="clientName" render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Tensão (V)</FormLabel>
-                          <FormControl><Input type="number" placeholder="Tensão" {...field} /></FormControl>
+                          <FormLabel>Cliente - Nome do Grupo</FormLabel>
+                          <FormControl><Input placeholder="Ex: Condomínio Sol Nascente" {...field} /></FormControl>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
-                    <FormField control={form.control} name={`strings.${index}.plates`} render={({ field }) => (
+                    <FormField control={form.control} name="panelPower" render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Qtd. Placas</FormLabel>
-                          <FormControl><Input type="number" placeholder="Placas" {...field} /></FormControl>
+                          <FormLabel>Potência do Painel (Wp)</FormLabel>
+                          <FormControl><Input type="number" placeholder="Ex: 550" {...field} /></FormControl>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
                   </div>
-                ))}
-              </CardContent>
-            </Card>
+                </AccordionContent>
+              </AccordionItem>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Zap /> Medições Elétricas (CA)</CardTitle>
-                <CardDescription>Valores de tensão medidos na instalação.</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                <FormField control={form.control} name="phase1Neutro" render={({ field }) => (<FormItem><FormLabel>Fase 1 x Neutro (V)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
-                <FormField control={form.control} name="phase2Neutro" render={({ field }) => (<FormItem><FormLabel>Fase 2 x Neutro (V)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
-                <FormField control={form.control} name="phase3Neutro" render={({ field }) => (<FormItem><FormLabel>Fase 3 x Neutro (V)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
-                <FormField control={form.control} name="phase1phase2" render={({ field }) => (<FormItem><FormLabel>Fase 1 x Fase 2 (V)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
-                <FormField control={form.control} name="phase1phase3" render={({ field }) => (<FormItem><FormLabel>Fase 1 x Fase 3 (V)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
-                <FormField control={form.control} name="phase2phase3" render={({ field }) => (<FormItem><FormLabel>Fase 2 x Fase 3 (V)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
-                <FormField control={form.control} name="phaseTerra" render={({ field }) => (<FormItem><FormLabel>Fase x Terra (V)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
-                <FormField control={form.control} name="neutroTerra" render={({ field }) => (<FormItem><FormLabel>Neutro x Terra (V)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><CircuitBoard /> Componentes e Cabeamento</CardTitle>
-                <CardDescription>Especifique os cabos e disjuntores utilizados.</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-8 md:grid-cols-2">
-                <FormField control={form.control} name="cableMeterToBreaker" render={({ field }) => (<FormItem className="space-y-3"><FormLabel>Cabo Medidor x Disjuntor Geral</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-wrap gap-4">{CABLE_SIZES.map(size => (<FormItem key={size} className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value={size} /></FormControl><FormLabel className="font-normal">{size}</FormLabel></FormItem>))}</RadioGroup></FormControl></FormItem>)} />
-                <FormField control={form.control} name="cableBreakerToInverter" render={({ field }) => (<FormItem className="space-y-3"><FormLabel>Cabo Disjuntor Geral x Inversor</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-wrap gap-4">{CABLE_SIZES.map(size => (<FormItem key={size} className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value={size} /></FormControl><FormLabel className="font-normal">{size}</FormLabel></FormItem>))}</RadioGroup></FormControl></FormItem>)} />
-                <FormField control={form.control} name="generalBreaker" render={({ field }) => (<FormItem className="space-y-3"><FormLabel>Disjuntor Geral</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-wrap gap-4">{DISJUNCTOR_RATINGS.map(rating => (<FormItem key={rating} className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value={rating} /></FormControl><FormLabel className="font-normal">{rating}</FormLabel></FormItem>))}</RadioGroup></FormControl></FormItem>)} />
-                <FormField control={form.control} name="inverterBreaker" render={({ field }) => (<FormItem className="space-y-3"><FormLabel>Disjuntor Inversor</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-wrap gap-4">{DISJUNCTOR_RATINGS.map(rating => (<FormItem key={rating} className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value={rating} /></FormControl><FormLabel className="font-normal">{rating}</FormLabel></FormItem>))}</RadioGroup></FormControl></FormItem>)} />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Camera /> Documentação Fotográfica</CardTitle>
-                <CardDescription>Anexe as fotos da instalação e adicione anotações se necessário.</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {PHOTO_UPLOADS.map((photo, index) => (
-                  <div key={photo.id} className="space-y-2 rounded-lg border p-4">
-                    <FormLabel className="flex items-center gap-2"><Camera size={16}/> {index+1}: {photo.label}</FormLabel>
-                    <FormField control={form.control} name={`photo_uploads.${index}.file`} render={({ field }) => (
-                      <FormItem>
-                        <FormControl><Input type="file" accept="image/*" className="text-sm" onChange={(e) => field.onChange(e.target.files)} /></FormControl>
-                      </FormItem>
-                    )}/>
-                     <FormField control={form.control} name={`photo_uploads.${index}.annotation`} render={({ field }) => (
-                      <FormItem>
-                        <FormControl><Input type="text" placeholder="Anotação (opcional)" {...field} /></FormControl>
-                      </FormItem>
-                    )}/>
+              <AccordionItem value="strings-measurements">
+                <AccordionTrigger>
+                  <div className="flex items-center gap-3">
+                    <Power className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">Medições das Strings (VCC)</span>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><ClipboardCheck /> Verificação Final</CardTitle>
-                <CardDescription>Confirmação de conectividade, observações finais e vídeo da instalação.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                 <FormField control={form.control} name="dataloggerConnected" render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">Conexão Datalogger</FormLabel>
-                        <p className="text-sm text-muted-foreground">Confirma que o datalogger está conectado e funcional.</p>
+                </AccordionTrigger>
+                <AccordionContent className="pt-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    {Array.from({ length: 6 }).map((_, index) => (
+                      <div key={index} className="space-y-3 rounded-lg border p-3">
+                        <p className="text-center font-semibold text-sm">String {index + 1}</p>
+                        <FormField control={form.control} name={`strings.${index}.voltage`} render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Tensão (V)</FormLabel>
+                              <FormControl><Input type="number" placeholder="Tensão" {...field} /></FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField control={form.control} name={`strings.${index}.plates`} render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Qtd. Placas</FormLabel>
+                              <FormControl><Input type="number" placeholder="Placas" {...field} /></FormControl>
+                            </FormItem>
+                          )}
+                        />
                       </div>
-                      <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                    </FormItem>
-                  )}
-                />
-                <Separator />
-                <FormField control={form.control} name="observations" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-2 text-base"><FileText size={16}/> Observações</FormLabel>
-                      <FormControl><Textarea placeholder="Insira quaisquer notas ou observações relevantes sobre a instalação..." className="min-h-[120px]" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Separator />
-                <FormField control={form.control} name="installationVideo" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-2 text-base"><Video size={16}/> Vídeo da Instalação</FormLabel>
-                       <p className="text-sm text-muted-foreground pb-2">Após finalizar, realize um vídeo mostrando toda a instalação concluída.</p>
-                      <FormControl><Input type="file" accept="video/*" onChange={(e) => field.onChange(e.target.files)} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+              
+              <AccordionItem value="electrical-measurements">
+                <AccordionTrigger>
+                   <div className="flex items-center gap-3">
+                    <Zap className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">Medições Elétricas (CA)</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pt-4">
+                   <div className="grid grid-cols-2 gap-4 rounded-lg border p-4">
+                    <FormField control={form.control} name="phase1Neutro" render={({ field }) => (<FormItem><FormLabel>F1 x N (V)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
+                    <FormField control={form.control} name="phase2Neutro" render={({ field }) => (<FormItem><FormLabel>F2 x N (V)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
+                    <FormField control={form.control} name="phase3Neutro" render={({ field }) => (<FormItem><FormLabel>F3 x N (V)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
+                    <FormField control={form.control} name="phase1phase2" render={({ field }) => (<FormItem><FormLabel>F1 x F2 (V)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
+                    <FormField control={form.control} name="phase1phase3" render={({ field }) => (<FormItem><FormLabel>F1 x F3 (V)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
+                    <FormField control={form.control} name="phase2phase3" render={({ field }) => (<FormItem><FormLabel>F2 x F3 (V)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
+                    <FormField control={form.control} name="phaseTerra" render={({ field }) => (<FormItem><FormLabel>Fase x Terra (V)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
+                    <FormField control={form.control} name="neutroTerra" render={({ field }) => (<FormItem><FormLabel>Neutro x Terra (V)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
 
-            <div className="flex justify-end">
-              <Button type="submit" size="lg">Registrar Instalação</Button>
+              <AccordionItem value="components-cabling">
+                <AccordionTrigger>
+                   <div className="flex items-center gap-3">
+                    <CircuitBoard className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">Componentes e Cabeamento</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pt-4 space-y-4">
+                   <div className="space-y-4 rounded-lg border p-4">
+                      <FormField control={form.control} name="cableMeterToBreaker" render={({ field }) => (<FormItem className="space-y-3"><FormLabel>Cabo Medidor x Disjuntor Geral</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-wrap gap-x-4 gap-y-2">{CABLE_SIZES.map(size => (<FormItem key={size} className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value={size} /></FormControl><FormLabel className="font-normal">{size}</FormLabel></FormItem>))}</RadioGroup></FormControl></FormItem>)} />
+                   </div>
+                   <div className="space-y-4 rounded-lg border p-4">
+                      <FormField control={form.control} name="cableBreakerToInverter" render={({ field }) => (<FormItem className="space-y-3"><FormLabel>Cabo Disjuntor Geral x Inversor</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-wrap gap-x-4 gap-y-2">{CABLE_SIZES.map(size => (<FormItem key={size} className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value={size} /></FormControl><FormLabel className="font-normal">{size}</FormLabel></FormItem>))}</RadioGroup></FormControl></FormItem>)} />
+                   </div>
+                   <div className="space-y-4 rounded-lg border p-4">
+                      <FormField control={form.control} name="generalBreaker" render={({ field }) => (<FormItem className="space-y-3"><FormLabel>Disjuntor Geral</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-wrap gap-x-4 gap-y-2">{DISJUNCTOR_RATINGS.map(rating => (<FormItem key={rating} className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value={rating} /></FormControl><FormLabel className="font-normal">{rating}</FormLabel></FormItem>))}</RadioGroup></FormControl></FormItem>)} />
+                   </div>
+                   <div className="space-y-4 rounded-lg border p-4">
+                      <FormField control={form.control} name="inverterBreaker" render={({ field }) => (<FormItem className="space-y-3"><FormLabel>Disjuntor Inversor</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-wrap gap-x-4 gap-y-2">{DISJUNCTOR_RATINGS.map(rating => (<FormItem key={rating} className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value={rating} /></FormControl><FormLabel className="font-normal">{rating}</FormLabel></FormItem>))}</RadioGroup></FormControl></FormItem>)} />
+                   </div>
+                </AccordionContent>
+              </AccordionItem>
+              
+              <AccordionItem value="photo-docs">
+                <AccordionTrigger>
+                   <div className="flex items-center gap-3">
+                    <Camera className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">Documentação Fotográfica</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pt-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {PHOTO_UPLOADS.map((photo, index) => (
+                      <div key={photo.id} className="space-y-2 rounded-lg border p-3">
+                        <FormLabel className="text-sm font-medium">{index+1}: {photo.label}</FormLabel>
+                        <FormField control={form.control} name={`photo_uploads.${index}.file`} render={({ field }) => (
+                          <FormItem>
+                            <FormControl><Input type="file" accept="image/*" className="text-sm" onChange={(e) => field.onChange(e.target.files)} /></FormControl>
+                          </FormItem>
+                        )}/>
+                         <FormField control={form.control} name={`photo_uploads.${index}.annotation`} render={({ field }) => (
+                          <FormItem>
+                            <FormControl><Input type="text" placeholder="Anotação (opcional)" {...field} /></FormControl>
+                          </FormItem>
+                        )}/>
+                      </div>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="final-check">
+                 <AccordionTrigger>
+                   <div className="flex items-center gap-3">
+                    <ClipboardCheck className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">Verificação Final</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pt-4 space-y-4">
+                  <div className="rounded-lg border p-4">
+                    <FormField control={form.control} name="dataloggerConnected" render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between">
+                        <div className="space-y-0.5">
+                          <FormLabel>Conexão Datalogger</FormLabel>
+                          <p className="text-sm text-muted-foreground">O datalogger está online?</p>
+                        </div>
+                        <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                      </FormItem>
+                    )}
+                    />
+                  </div>
+                   <div className="space-y-2 rounded-lg border p-4">
+                    <FormField control={form.control} name="observations" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2"><FileText size={16}/> Observações</FormLabel>
+                          <FormControl><Textarea placeholder="Insira notas relevantes..." className="min-h-[100px]" {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                   <div className="space-y-2 rounded-lg border p-4">
+                    <FormField control={form.control} name="installationVideo" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2"><Video size={16}/> Vídeo da Instalação</FormLabel>
+                           <p className="text-sm text-muted-foreground pb-2">Grave um vídeo da instalação concluída.</p>
+                          <FormControl><Input type="file" accept="video/*" onChange={(e) => field.onChange(e.target.files)} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+
+            <div className="pt-4">
+              <Button type="submit" size="lg" className="w-full">Registrar Instalação</Button>
             </div>
           </form>
         </Form>
@@ -268,3 +308,5 @@ export default function InstallationLogPage() {
     </div>
   );
 }
+
+    
