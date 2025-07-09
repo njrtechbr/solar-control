@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import * as QRCode from "qrcode.react";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { SunMedium, Printer, ArrowLeft, Building, Home, MapPin, Bolt, FileText, Calendar, User, Info, CheckCircle, FileCheck, Power } from "lucide-react";
+import { SunMedium, Printer, ArrowLeft, Building, Home, MapPin, Bolt, FileText, Calendar, User, Info, CheckCircle, FileCheck, Power, Link as LinkIcon } from "lucide-react";
 
 import { type Installation } from "@/app/admin/page";
 import { Button } from "@/components/ui/button";
@@ -20,12 +20,16 @@ export default function PrintInstallationPage() {
 
     const [installation, setInstallation] = useState<Installation | null>(null);
     const [installerReport, setInstallerReport] = useState<any | null>(null);
-    const [qrCodeValue, setQrCodeValue] = useState('');
+    const [installerQrCodeValue, setInstallerQrCodeValue] = useState('');
+    const [clientQrCodeValue, setClientQrCodeValue] = useState('');
 
     useEffect(() => {
-        if (typeof window !== 'undefined' && installation?.clientName) {
-            const url = `${window.location.origin}/?client=${encodeURIComponent(installation.clientName)}`;
-            setQrCodeValue(url);
+        if (typeof window !== 'undefined' && installation) {
+            const installerUrl = `${window.location.origin}/?client=${encodeURIComponent(installation.clientName)}`;
+            setInstallerQrCodeValue(installerUrl);
+            
+            const clientUrl = `${window.location.origin}/status/${installation.id}`;
+            setClientQrCodeValue(clientUrl);
         }
 
         if (id) {
@@ -40,7 +44,7 @@ export default function PrintInstallationPage() {
                 }
             }
         }
-    }, [id, installation?.clientName]);
+    }, [id, installation]);
 
     const handlePrint = () => {
         window.print();
@@ -117,7 +121,7 @@ export default function PrintInstallationPage() {
 
                     <section className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-md flex items-center gap-6">
                          <div className="flex-shrink-0">
-                             {qrCodeValue && <QRCode.default value={qrCodeValue} size={128} />}
+                             {installerQrCodeValue && <QRCode.default value={installerQrCodeValue} size={128} />}
                          </div>
                          <div>
                             <h3 className="text-lg font-semibold text-amber-800">Ação para o Instalador</h3>
@@ -125,7 +129,7 @@ export default function PrintInstallationPage() {
                          </div>
                     </section>
                     
-                    <footer className="mt-10 pt-4 border-t text-center">
+                    <footer className="mt-10 pt-4 border-t text-center absolute bottom-10 left-0 right-0">
                         <p className="text-sm">Assinatura do Instalador: _________________________________________</p>
                         <p className="text-xs text-muted-foreground mt-4">&copy; {new Date().getFullYear()} SolarView Pro. Documento gerado em {format(new Date(), "dd/MM/yyyy HH:mm")}.</p>
                     </footer>
@@ -203,8 +207,19 @@ export default function PrintInstallationPage() {
                             <p>O relatório técnico do instalador ainda não foi preenchido.</p>
                         </div>
                     )}
+                    
+                    <section className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-md flex items-center gap-6 mt-8">
+                         <div className="flex-shrink-0">
+                             {clientQrCodeValue && <QRCode.default value={clientQrCodeValue} size={128} />}
+                         </div>
+                         <div>
+                            <h3 className="text-lg font-semibold text-blue-800">Acompanhe sua Instalação</h3>
+                            <p className="text-blue-700">Use a câmera do seu celular para escanear este QR Code e acompanhar em tempo real o andamento do seu projeto de energia solar.</p>
+                         </div>
+                    </section>
 
-                    <footer className="mt-10 pt-4 border-t text-center">
+
+                    <footer className="mt-10 pt-4 border-t text-center absolute bottom-10 left-0 right-0">
                         <p className="text-sm">Assinatura do Cliente: _________________________________________</p>
                         <p className="text-xs text-muted-foreground mt-4">&copy; {new Date().getFullYear()} SolarView Pro. Documento gerado em {format(new Date(), "dd/MM/yyyy HH:mm")}.</p>
                     </footer>

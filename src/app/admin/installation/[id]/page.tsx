@@ -346,6 +346,12 @@ export default function InstallationDetailPage() {
     copyToClipboard(link, "Link de acompanhamento copiado!");
   }
 
+  const handleCopyInstallerLink = () => {
+    if (!installation) return;
+    const link = `${window.location.origin}/?client=${encodeURIComponent(installation.clientName)}`;
+    copyToClipboard(link, "Link do formulário do instalador copiado!");
+  }
+
   if (!installation) {
     return (
         <div className="flex h-screen items-center justify-center">
@@ -479,8 +485,8 @@ export default function InstallationDetailPage() {
             {installation.archived && <Badge variant="destructive">Arquivado</Badge>}
             </h1>
         </div>
-        <div className="flex items-center gap-4">
-            <Link href={`/admin/installation/${id}/print`} passHref>
+        <div className="flex items-center gap-2">
+             <Link href={`/admin/installation/${id}/print`} passHref>
                 <Button variant="link" className="p-0 h-auto">
                     Imprimir
                 </Button>
@@ -510,9 +516,13 @@ export default function InstallationDetailPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            <Button variant="secondary" onClick={handleCopyInstallerLink}>
+                <Wrench className="mr-2 h-4 w-4" />
+                Link Instalador
+            </Button>
             <Button variant="secondary" onClick={handleCopyStatusLink}>
                 <LinkIcon className="mr-2 h-4 w-4" />
-                Copiar Link Cliente
+                Link Cliente
             </Button>
         </div>
       </header>
@@ -1035,5 +1045,3 @@ export default function InstallationDetailPage() {
     </div>
   );
 }
-
-    
