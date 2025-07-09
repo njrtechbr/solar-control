@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from 'next/navigation';
-import { QRCode } from "qrcode.react";
+import * as QRCode from "qrcode.react";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { SunMedium, Printer, ArrowLeft, Building, Home, MapPin, Bolt, FileText, Calendar, User, Info, CheckCircle, FileCheck, Power } from "lucide-react";
@@ -23,8 +23,8 @@ export default function PrintInstallationPage() {
     const [qrCodeValue, setQrCodeValue] = useState('');
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const url = `${window.location.origin}/?client=${encodeURIComponent(installation?.clientName || '')}`;
+        if (typeof window !== 'undefined' && installation?.clientName) {
+            const url = `${window.location.origin}/?client=${encodeURIComponent(installation.clientName)}`;
             setQrCodeValue(url);
         }
 
@@ -117,7 +117,7 @@ export default function PrintInstallationPage() {
 
                     <section className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-md flex items-center gap-6">
                          <div className="flex-shrink-0">
-                             {qrCodeValue && <QRCode value={qrCodeValue} size={128} />}
+                             {qrCodeValue && <QRCode.default value={qrCodeValue} size={128} />}
                          </div>
                          <div>
                             <h3 className="text-lg font-semibold text-amber-800">Ação para o Instalador</h3>

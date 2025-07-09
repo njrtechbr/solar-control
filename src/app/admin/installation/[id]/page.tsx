@@ -479,41 +479,42 @@ export default function InstallationDetailPage() {
             {installation.archived && <Badge variant="destructive">Arquivado</Badge>}
             </h1>
         </div>
-        <Link href={`/admin/installation/${id}/print`} passHref>
-          <Button variant="outline">
-            <Printer className="mr-2 h-4 w-4" />
-            Imprimir / Gerar PDF
-          </Button>
-        </Link>
-        <AlertDialog>
-            <AlertDialogTrigger asChild>
-                <Button variant="outline" disabled={!isArchivable}>
-                    {installation.archived ? <ArchiveRestore className="mr-2 h-4 w-4" /> : <Archive className="mr-2 h-4 w-4" />}
-                    {installation.archived ? "Desarquivar" : "Arquivar"}
+        <div className="flex items-center gap-4">
+            <Link href={`/admin/installation/${id}/print`} passHref>
+                <Button variant="link" className="p-0 h-auto">
+                    Imprimir
                 </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                <AlertDialogDescription>
-                    {installation.archived 
-                        ? "Esta ação irá desarquivar a instalação, fazendo com que ela apareça novamente nos quadros Kanban."
-                        : "Esta ação irá arquivar a instalação, removendo-a das visualizações principais do Kanban. Você ainda poderá acessá-la pela lista completa."
-                    }
-                </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleArchiveToggle}>
-                    Confirmar
-                </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-        <Button variant="secondary" onClick={handleCopyStatusLink}>
-            <LinkIcon className="mr-2 h-4 w-4" />
-            Copiar Link Cliente
-        </Button>
+            </Link>
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="outline" disabled={!isArchivable}>
+                        {installation.archived ? <ArchiveRestore className="mr-2 h-4 w-4" /> : <Archive className="mr-2 h-4 w-4" />}
+                        {installation.archived ? "Desarquivar" : "Arquivar"}
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        {installation.archived 
+                            ? "Esta ação irá desarquivar a instalação, fazendo com que ela apareça novamente nos quadros Kanban."
+                            : "Esta ação irá arquivar a instalação, removendo-a das visualizações principais do Kanban. Você ainda poderá acessá-la pela lista completa."
+                        }
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleArchiveToggle}>
+                        Confirmar
+                    </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <Button variant="secondary" onClick={handleCopyStatusLink}>
+                <LinkIcon className="mr-2 h-4 w-4" />
+                Copiar Link Cliente
+            </Button>
+        </div>
       </header>
 
       <main className="flex-1 p-4 md:p-6 grid gap-6 md:grid-cols-3 lg:grid-cols-4">
@@ -1034,3 +1035,5 @@ export default function InstallationDetailPage() {
     </div>
   );
 }
+
+    
