@@ -5,38 +5,9 @@ import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import Link from 'next/link';
-import { Link as LinkIcon, User, SunMedium, Copy, Home, Building, Bolt, FileText, Trash2, Edit, AlertTriangle, FileCheck2, PlusCircle, CheckCircle, XCircle, Clock, Sparkles, SlidersHorizontal } from "lucide-react";
+import { User, SunMedium, Home, Building, Bolt, PlusCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { toast } from "@/hooks/use-toast";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
@@ -47,8 +18,20 @@ import {
   DialogTrigger,
   DialogClose
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { toast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { KanbanBoard } from "./_components/kanban-board";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 // Extended Installation type for CRM features
 const installationSchema = z.object({
@@ -88,6 +71,8 @@ const installationSchema = z.object({
 
 export type Installation = z.infer<typeof installationSchema>;
 
+export type InstallationStatus = Installation['status'];
+
 const initialInstallations: Installation[] = [
     { 
       id: 1, 
@@ -106,10 +91,10 @@ const initialInstallations: Installation[] = [
       reportSubmitted: false, 
       scheduledDate: new Date(Date.now() + 86400000 * 3).toISOString(), 
       events: [
-        { id: '1', date: new Date(Date.now() - 86400000 * 10).toISOString(), type: 'Protocolo', description: 'Protocolo 987654321 aberto na CPFL.'},
-        { id: '2', date: new Date(Date.now() - 86400000 * 9).toISOString(), type: 'Projeto', description: 'Projeto enviado para análise da concessionária.'},
-        { id: '3', date: new Date(Date.now() - 86400000 * 4).toISOString(), type: 'Projeto', description: 'Projeto aprovado pela concessionária.'},
-        { id: '4', date: new Date(Date.now() - 86400000 * 2).toISOString(), type: 'Agendamento', description: 'Visita técnica agendada com o síndico para a próxima semana.'}
+        { id: '1', date: new Date(Date.now() - 86400000 * 10).toISOString(), type: 'Protocolo', description: 'Protocolo 987654321 aberto na CPFL.', attachments: []},
+        { id: '2', date: new Date(Date.now() - 86400000 * 9).toISOString(), type: 'Projeto', description: 'Projeto enviado para análise da concessionária.', attachments: []},
+        { id: '3', date: new Date(Date.now() - 86400000 * 4).toISOString(), type: 'Projeto', description: 'Projeto aprovado pela concessionária.', attachments: []},
+        { id: '4', date: new Date(Date.now() - 86400000 * 2).toISOString(), type: 'Agendamento', description: 'Visita técnica agendada com o síndico para a próxima semana.', attachments: []}
       ], 
       documents: [
         { name: 'projeto_preliminar.pdf', dataUrl: '#', type: 'application/pdf', date: new Date(Date.now() - 86400000 * 9).toISOString() }
@@ -131,13 +116,13 @@ const initialInstallations: Installation[] = [
       status: "Concluído", 
       reportSubmitted: true, 
       events: [
-        { id: '1', date: new Date(Date.now() - 86400000 * 15).toISOString(), type: 'Protocolo', description: 'Protocolo 123456789 aberto na Enel.'},
-        { id: '2', date: new Date(Date.now() - 86400000 * 14).toISOString(), type: 'Projeto', description: 'Projeto enviado para análise.'},
-        { id: '3', date: new Date(Date.now() - 86400000 * 8).toISOString(), type: 'Projeto', description: 'Projeto Aprovado.'},
-        { id: '4', date: new Date(Date.now() - 86400000 * 5).toISOString(), type: 'Agendamento', description: 'Instalação agendada.'},
+        { id: '1', date: new Date(Date.now() - 86400000 * 15).toISOString(), type: 'Protocolo', description: 'Protocolo 123456789 aberto na Enel.', attachments: []},
+        { id: '2', date: new Date(Date.now() - 86400000 * 14).toISOString(), type: 'Projeto', description: 'Projeto enviado para análise.', attachments: []},
+        { id: '3', date: new Date(Date.now() - 86400000 * 8).toISOString(), type: 'Projeto', description: 'Projeto Aprovado.', attachments: []},
+        { id: '4', date: new Date(Date.now() - 86400000 * 5).toISOString(), type: 'Agendamento', description: 'Instalação agendada.', attachments: []},
         { id: '5', date: new Date(Date.now() - 86400000 * 3).toISOString(), type: 'Problema', description: 'Atraso na entrega do inversor. Resolvido com o fornecedor no mesmo dia.', attachments: [{ name: 'nota_fiscal_inversor.pdf', dataUrl: '#'}]},
-        { id: '6', date: new Date(Date.now() - 86400000 * 1).toISOString(), type: 'Conclusão', description: 'Instalação finalizada e comissionada com sucesso.'},
-        { id: '7', date: new Date(Date.now() - 86400000 * 0).toISOString(), type: 'Homologação', description: 'Instalação homologada pela concessionária.'}
+        { id: '6', date: new Date(Date.now() - 86400000 * 1).toISOString(), type: 'Conclusão', description: 'Instalação finalizada e comissionada com sucesso.', attachments: []},
+        { id: '7', date: new Date(Date.now() - 86400000 * 0).toISOString(), type: 'Homologação', description: 'Instalação homologada pela concessionária.', attachments: []}
       ], 
       documents: [
          { name: 'art_assinada.pdf', dataUrl: '#', type: 'application/pdf', date: new Date(Date.now() - 86400000 * 14).toISOString() },
@@ -160,7 +145,7 @@ const initialInstallations: Installation[] = [
       status: "Cancelado", 
       reportSubmitted: false, 
       events: [
-        { id: '1', date: new Date(Date.now() - 86400000 * 10).toISOString(), type: 'Nota', description: 'Cliente solicitou cancelamento por motivos financeiros. Arquivar.'}
+        { id: '1', date: new Date(Date.now() - 86400000 * 10).toISOString(), type: 'Nota', description: 'Cliente solicitou cancelamento por motivos financeiros. Arquivar.', attachments: []}
       ], 
       documents: [] 
     },
@@ -191,17 +176,10 @@ const createSampleReport = () => {
       strings: [
           { voltage: 450, plates: 10 },
           { voltage: 452, plates: 10 },
-          { voltage: 0, plates: 0 },
-          { voltage: 0, plates: 0 },
-          { voltage: 0, plates: 0 },
-          { voltage: 0, plates: 0 },
       ],
       phase1Neutro: 220,
       phase2Neutro: 219,
-      phase3Neutro: 0,
       phase1phase2: 380,
-      phase1phase3: 0,
-      phase2phase3: 0,
       phaseTerra: 220,
       neutroTerra: 0.5,
       cableMeterToBreaker: "16mm",
@@ -224,9 +202,6 @@ const createSampleReport = () => {
 
 export default function AdminPage() {
   const [installations, setInstallations] = useState<Installation[]>([]);
-  const [editingInstallation, setEditingInstallation] = useState<Installation | null>(null);
-  const [deletingInstallation, setDeletingInstallation] = useState<Installation | null>(null);
-  const [linkDialog, setLinkDialog] = useState({ isOpen: false, link: "" });
   const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -275,10 +250,6 @@ export default function AdminPage() {
     },
   });
   
-  const editForm = useForm<Installation>({
-    resolver: zodResolver(installationSchema),
-  });
-
   function handleCreate(values: Installation) {
     const newInstallation = { ...values, id: Date.now(), reportSubmitted: false, events: [], documents: [], scheduledDate: undefined };
     
@@ -299,59 +270,56 @@ export default function AdminPage() {
     setCreateDialogOpen(false);
   }
   
-  function handleUpdate(values: Installation) {
-    const updatedInstallations = installations.map(inst => inst.id === values.id ? values : inst)
-    saveInstallations(updatedInstallations);
-    toast({ title: "Instalação Atualizada!", description: `Os dados de ${values.clientName} foram salvos.` });
-    setEditingInstallation(null);
-  }
-  
-  function handleDelete() {
-    if (!deletingInstallation) return;
-    const updatedInstallations = installations.filter(inst => inst.id !== deletingInstallation.id)
-    saveInstallations(updatedInstallations);
-    localStorage.removeItem(`report_${deletingInstallation.clientName}`);
-    toast({ title: "Instalação Excluída!", variant: "destructive", description: `O registro de ${deletingInstallation.clientName} foi removido.` });
-    setDeletingInstallation(null);
-  }
+  const handleStatusChange = (installationId: number, newStatus: InstallationStatus) => {
+    const allInstallations = [...installations];
+    const installationIndex = allInstallations.findIndex(inst => inst.id === installationId);
+    if (installationIndex === -1) return;
 
-  function openEditDialog(installation: Installation) {
-    setEditingInstallation(installation);
-    editForm.reset(installation);
-  }
+    const installation = allInstallations[installationIndex];
+    const oldStatus = installation.status;
 
-  function generateLink(clientName: string) {
-    const link = `${window.location.origin}/?client=${encodeURIComponent(clientName)}`;
-    setLinkDialog({ isOpen: true, link });
-  }
+    if(oldStatus === newStatus) return;
 
-  function copyToClipboard(text: string) {
-    navigator.clipboard.writeText(text);
+    // Update status
+    installation.status = newStatus;
+
+    // Add event
+    const newEvent = {
+        id: new Date().toISOString(),
+        date: new Date().toISOString(),
+        type: 'Nota',
+        description: `Status alterado de "${oldStatus}" para "${newStatus}".`,
+        attachments: [],
+    };
+    installation.events = [...(installation.events || []), newEvent].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    // If moved to scheduled, check if there is a date
+    if (newStatus === "Agendado" && !installation.scheduledDate) {
+        const scheduledDate = new Date(Date.now() + 86400000 * 7); // Schedule for 7 days from now as a default
+        installation.scheduledDate = scheduledDate.toISOString();
+
+         const scheduleEvent = {
+            id: new Date().toISOString() + "_schedule",
+            date: new Date().toISOString(),
+            type: 'Agendamento',
+            description: `Instalação agendada para ${format(scheduledDate, "dd 'de' MMMM, yyyy 'às' HH:mm", { locale: ptBR })}.`,
+            attachments: [],
+        };
+        installation.events.push(scheduleEvent);
+        installation.events.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }
+
+    allInstallations[installationIndex] = installation;
+    saveInstallations(allInstallations);
     toast({
-      title: "Link copiado!",
+        title: "Status Atualizado!",
+        description: `${installation.clientName} movido para "${newStatus}".`
     });
   }
 
-  const getStatusProps = (status: Installation["status"]) => {
-    switch (status) {
-      case "Concluído":
-        return { icon: <CheckCircle className="h-4 w-4" />, className: "bg-green-600 hover:bg-green-700" };
-      case "Cancelado":
-        return { icon: <XCircle className="h-4 w-4" />, className: "bg-red-600 hover:bg-red-700" };
-       case "Em Andamento":
-        return { icon: <Bolt className="h-4 w-4" />, className: "bg-yellow-500 hover:bg-yellow-600" };
-      case "Agendado":
-         return { icon: <Clock className="h-4 w-4" />, className: "bg-blue-500 hover:bg-blue-600" };
-      case "Pendente":
-      default:
-        return { icon: <FileText className="h-4 w-4" />, className: "bg-gray-500 hover:bg-gray-600" };
-    }
-  };
-
-
   return (
     <>
-      <div className="flex min-h-screen w-full flex-col bg-muted/40">
+      <div className="flex h-screen w-full flex-col bg-muted/40">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-background/95 px-6 backdrop-blur-sm">
           <div className="flex items-center gap-3">
             <SunMedium className="h-7 w-7 text-primary" />
@@ -445,159 +413,15 @@ export default function AdminPage() {
           </Dialog>
         </header>
 
-        <main className="flex flex-1 flex-col gap-4 p-4 md:p-6">
-          <div className="flex items-center">
-            <h2 className="text-2xl font-semibold tracking-tight">Gerenciador de Instalações</h2>
+        <main className="flex-1 overflow-x-auto">
+          <div className="p-4 md:p-6 min-w-[1200px]">
+             <KanbanBoard 
+                installations={installations} 
+                onStatusChange={handleStatusChange} 
+            />
           </div>
-         
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {installations.map((inst) => {
-               const statusProps = getStatusProps(inst.status);
-               return (
-                <Card key={inst.id} className="flex flex-col">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span className="truncate pr-2">{inst.clientName}</span>
-                       <Badge variant="default" className={statusProps.className}>
-                          {statusProps.icon}
-                          <span className="ml-1">{inst.status}</span>
-                       </Badge>
-                    </CardTitle>
-                    <CardDescription className="flex items-center gap-2 pt-1">
-                      {inst.installationType === 'residencial' ? <Home size={14}/> : <Building size={14} />} 
-                      {inst.city} / {inst.state}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex-grow space-y-3">
-                     <div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                           <FileText size={14} /> Relatório do Instalador: 
-                           {inst.reportSubmitted ? (
-                                <Badge variant="default" className="bg-blue-600 hover:bg-blue-700">Enviado</Badge>
-                            ) : (
-                                <Badge variant="secondary">Pendente</Badge>
-                            )}
-                        </div>
-                     </div>
-                      <div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                           <Bolt size={14} /> Concessionária:
-                           <span className="font-medium text-foreground">{inst.utilityCompany}</span>
-                        </div>
-                     </div>
-                      <div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                           <FileCheck2 size={14} /> Projeto:
-                           <span className="font-medium text-foreground">{inst.projectStatus}</span>
-                        </div>
-                     </div>
-                  </CardContent>
-                  <CardFooter className="flex-col items-stretch gap-2">
-                      <Link href={`/admin/installation/${inst.id}`} passHref>
-                          <Button className="w-full">
-                            <SlidersHorizontal className="mr-2 h-4 w-4" /> Gerenciar
-                          </Button>
-                      </Link>
-                      <div className="grid grid-cols-3 gap-2">
-                        <Button variant="secondary" onClick={() => generateLink(inst.clientName)}>
-                            <LinkIcon />
-                        </Button>
-                         <Button variant="secondary" onClick={() => openEditDialog(inst)}>
-                            <Edit />
-                        </Button>
-                         <Button variant="destructive" className="bg-destructive/20 text-destructive hover:bg-destructive/30" onClick={() => setDeletingInstallation(inst)}>
-                            <Trash2 />
-                        </Button>
-                      </div>
-                  </CardFooter>
-                </Card>
-               )
-            })}
-          </div>
-
         </main>
       </div>
-      
-      {/* Edit Dialog */}
-      <Dialog open={!!editingInstallation} onOpenChange={(open) => !open && setEditingInstallation(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Instalação</DialogTitle>
-            <DialogDescription>
-              Atualize os dados da instalação para {editingInstallation?.clientName}.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...editForm}>
-            <form id="edit-form" onSubmit={editForm.handleSubmit(handleUpdate)} className="space-y-4 py-4">
-              <FormField control={editForm.control} name="clientName" render={({ field }) => (<FormItem><FormLabel>Nome</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={editForm.control} name="address" render={({ field }) => (<FormItem><FormLabel>Endereço</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-              <div className="grid grid-cols-2 gap-4">
-                  <FormField control={editForm.control} name="city" render={({ field }) => (<FormItem><FormLabel>Cidade</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
-                  <FormField control={editForm.control} name="state" render={({ field }) => (<FormItem><FormLabel>Estado</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
-              </div>
-               <FormField control={editForm.control} name="status" render={({ field }) => (
-                <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-wrap gap-4 pt-2">
-                        <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Pendente" /></FormControl><FormLabel className="font-normal">Pendente</FormLabel></FormItem>
-                        <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Agendado" /></FormControl><FormLabel className="font-normal">Agendado</FormLabel></FormItem>
-                         <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Em Andamento" /></FormControl><FormLabel className="font-normal">Em Andamento</FormLabel></FormItem>
-                        <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Concluído" /></FormControl><FormLabel className="font-normal">Concluído</FormLabel></FormItem>
-                        <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Cancelado" /></FormControl><FormLabel className="font-normal">Cancelado</FormLabel></FormItem>
-                    </RadioGroup>
-                    <FormMessage />
-                </FormItem>
-               )}/>
-
-            </form>
-          </Form>
-          <DialogFooter>
-            <DialogClose asChild>
-                <Button type="button" variant="outline">Cancelar</Button>
-            </DialogClose>
-            <Button type="submit" form="edit-form">Salvar Alterações</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Delete Alert */}
-      <AlertDialog open={!!deletingInstallation} onOpenChange={(open) => !open && setDeletingInstallation(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle className="text-destructive"/>Tem certeza?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Isso excluirá permanentemente a instalação de <span className="font-bold">{deletingInstallation?.clientName}</span> e seu respectivo relatório.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Excluir</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Link Dialog */}
-      <AlertDialog open={linkDialog.isOpen} onOpenChange={(open) => setLinkDialog(prev => ({...prev, isOpen: open}))}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Link Gerado com Sucesso!</AlertDialogTitle>
-            <AlertDialogDescription>
-              Envie o link abaixo para o técnico responsável pela instalação.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="flex items-center space-x-2 rounded-md border bg-muted p-2">
-            <LinkIcon className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-            <Input id="link" value={linkDialog.link} readOnly className="flex-1 bg-transparent ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 border-0" />
-            <Button type="button" size="sm" className="px-3" onClick={() => copyToClipboard(linkDialog.link)}>
-              <span className="sr-only">Copiar</span>
-              <Copy className="h-4 w-4" />
-            </Button>
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setLinkDialog({isOpen: false, link: ""})}>Fechar</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
