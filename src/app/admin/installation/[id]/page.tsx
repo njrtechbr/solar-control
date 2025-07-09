@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format, isPast, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Video, Bolt, Clock, CheckCircle, XCircle, FileText, Activity, FileJson, Files, Upload, ListChecks, Hourglass, Send, ThumbsUp, ThumbsDown, Archive, ArchiveRestore } from "lucide-react";
+import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Video, Bolt, Clock, CheckCircle, XCircle, FileText, Activity, FileJson, Files, Upload, ListChecks, Hourglass, Send, ThumbsUp, ThumbsDown, Archive, ArchiveRestore, Link as LinkIcon } from "lucide-react";
 
 import { type Installation, InstallationStatus, ProjectStatus, HomologationStatus } from "@/app/admin/page";
 import { Button } from "@/components/ui/button";
@@ -339,6 +339,12 @@ export default function InstallationDetailPage() {
     toast({ title: message });
   }
 
+  const handleCopyStatusLink = () => {
+    if (!installation) return;
+    const link = `${window.location.origin}/status/${installation.id}`;
+    copyToClipboard(link, "Link de acompanhamento copiado!");
+  }
+
   if (!installation) {
     return (
         <div className="flex h-screen items-center justify-center">
@@ -497,6 +503,10 @@ export default function InstallationDetailPage() {
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
+        <Button variant="secondary" onClick={handleCopyStatusLink}>
+            <LinkIcon className="mr-2 h-4 w-4" />
+            Copiar Link Cliente
+        </Button>
       </header>
 
       <main className="flex-1 p-4 md:p-6 grid gap-6 md:grid-cols-3 lg:grid-cols-4">
