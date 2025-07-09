@@ -169,3 +169,5 @@ export function KanbanBoard({ installations, columns, onItemMove }: KanbanBoardP
     </DndContext>
   );
 }
+
+    

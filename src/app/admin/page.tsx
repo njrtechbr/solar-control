@@ -459,8 +459,8 @@ export default function AdminPage() {
         <main className="flex-1 overflow-hidden p-4 md:p-6">
             <Tabs defaultValue="installation-status">
                 <TabsList className="mb-4">
-                    <TabsTrigger value="installation-status"><LayoutDashboard className="mr-2" />Status da Instalação</TabsTrigger>
-                    <TabsTrigger value="process-status"><ListChecks className="mr-2" />Status do Processo</TabsTrigger>
+                    <TabsTrigger value="installation-status"><LayoutDashboard className="mr-2 h-4 w-4" />Status da Instalação</TabsTrigger>
+                    <TabsTrigger value="process-status"><ListChecks className="mr-2 h-4 w-4" />Status do Processo</TabsTrigger>
                 </TabsList>
                 <TabsContent value="installation-status" className="h-full overflow-x-auto">
                      <div className="min-w-[1200px] h-full">
@@ -486,3 +486,5 @@ export default function AdminPage() {
     </>
   );
 }
+
+    
