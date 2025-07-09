@@ -1,10 +1,11 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Link, User, SunMedium, Copy, Home, Building, Bolt, FileText, Trash2, Edit, MoreHorizontal, AlertTriangle, FileCheck2 } from "lucide-react";
+import { Link as LinkIcon, User, SunMedium, Copy, Home, Building, Bolt, FileText, Trash2, Edit, MoreHorizontal, AlertTriangle, FileCheck2, Camera, Video } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -256,7 +257,7 @@ export default function AdminPage() {
                                             </DropdownMenuItem>
                                         )}
                                         <DropdownMenuItem onClick={() => generateLink(inst.clientName)}>
-                                            <Link className="mr-2 h-4 w-4" />
+                                            <LinkIcon className="mr-2 h-4 w-4" />
                                             <span>Ver Link</span>
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => openEditDialog(inst)}>
@@ -419,7 +420,7 @@ export default function AdminPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex items-center space-x-2 rounded-md border bg-muted p-2">
-            <Link className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+            <LinkIcon className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
             <Input id="link" value={linkDialog.link} readOnly className="flex-1 bg-transparent ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 border-0" />
             <Button type="button" size="sm" className="px-3" onClick={copyLinkToClipboard}>
               <span className="sr-only">Copiar</span>
@@ -434,7 +435,7 @@ export default function AdminPage() {
 
        {/* View Report Dialog */}
         <Dialog open={!!viewingReport} onOpenChange={(open) => !open && setViewingReport(null)}>
-            <DialogContent className="sm:max-w-2xl">
+            <DialogContent className="sm:max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>Relatório de Instalação - {viewingReport?.clientName}</DialogTitle>
                     <DialogDescription>Detalhes completos preenchidos pelo instalador.</DialogDescription>
@@ -494,6 +495,33 @@ export default function AdminPage() {
                         </div>
                         <Separator />
                         
+                         <div>
+                            <h3 className="font-semibold text-lg mb-2 flex items-center gap-2"><Camera /> Documentação Fotográfica</h3>
+                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                {viewingReport.photo_uploads && viewingReport.photo_uploads.map((photo: any, index: number) => (
+                                    photo.dataUrl && (
+                                        <div key={index} className="space-y-1">
+                                            <a href={photo.dataUrl} target="_blank" rel="noopener noreferrer">
+                                                <img src={photo.dataUrl} alt={photo.annotation || `Foto ${index + 1}`} className="rounded-md object-cover aspect-square hover:opacity-80 transition-opacity" />
+                                            </a>
+                                            <p className="text-xs text-muted-foreground truncate">{photo.annotation || `Foto ${index + 1}`}</p>
+                                        </div>
+                                    )
+                                ))}
+                            </div>
+                        </div>
+                        <Separator />
+
+                        <div>
+                            <h3 className="font-semibold text-lg mb-2 flex items-center gap-2"><Video /> Vídeo da Instalação</h3>
+                            {viewingReport.installationVideoDataUrl ? (
+                                <video src={viewingReport.installationVideoDataUrl} controls className="w-full rounded-md" />
+                            ) : (
+                                <p>Nenhum vídeo enviado.</p>
+                            )}
+                        </div>
+                        <Separator />
+
                         <div>
                             <h3 className="font-semibold text-lg mb-2">Verificação Final</h3>
                             <p><strong>Datalogger Online:</strong> {viewingReport.dataloggerConnected ? 'Sim' : 'Não'}</p>

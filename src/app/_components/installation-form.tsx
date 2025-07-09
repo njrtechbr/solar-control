@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -66,8 +67,13 @@ const formSchema = z.object({
   inverterBreaker: z.string().optional(),
   dataloggerConnected: z.boolean().default(false),
   observations: z.string().optional(),
-  photo_uploads: z.array(z.object({ file: z.any(), annotation: z.string().optional() })).optional(),
+  photo_uploads: z.array(z.object({ 
+    file: z.any(), 
+    dataUrl: z.string().optional(),
+    annotation: z.string().optional() 
+  })).optional(),
   installationVideo: z.any().optional(),
+  installationVideoDataUrl: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -89,24 +95,48 @@ const PHOTO_UPLOADS = [
   { id: "photo12", label: "Ponto de Conexão" },
 ];
 
+// Helper to convert file to Base64
+const fileToDataUrl = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = (error) => reject(error);
+    });
+};
+
 export default function InstallationForm({ clientName }: { clientName: string }) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       clientName: clientName || "",
       strings: Array(6).fill({ voltage: undefined, plates: undefined }),
-      photo_uploads: Array(12).fill({ file: undefined, annotation: "" }),
+      photo_uploads: Array(12).fill({ file: undefined, dataUrl: "", annotation: "" }),
       dataloggerConnected: false,
     },
   });
 
-  function onSubmit(data: FormValues) {
-    // We are ignoring photo and video uploads for now
-    const { photo_uploads, installationVideo, ...reportData } = data;
-    
+  async function onSubmit(data: FormValues) {
     try {
+        // Handle photo uploads
+        if (data.photo_uploads) {
+            for (let i = 0; i < data.photo_uploads.length; i++) {
+                const photo = data.photo_uploads[i];
+                if (photo.file && photo.file instanceof FileList && photo.file.length > 0) {
+                    photo.dataUrl = await fileToDataUrl(photo.file[0]);
+                }
+                delete photo.file; // Don't store the File object
+            }
+        }
+
+        // Handle video upload
+        if (data.installationVideo && data.installationVideo instanceof FileList && data.installationVideo.length > 0) {
+            data.installationVideoDataUrl = await fileToDataUrl(data.installationVideo[0]);
+        }
+        delete data.installationVideo; // Don't store the File object
+      
         // Save the report to localStorage, keyed by the client's name
-        localStorage.setItem(`report_${data.clientName}`, JSON.stringify(reportData));
+        localStorage.setItem(`report_${data.clientName}`, JSON.stringify(data));
         
         // Also update the main installations list to mark the report as submitted
         const installations = JSON.parse(localStorage.getItem('installations') || '[]');
@@ -324,7 +354,9 @@ export default function InstallationForm({ clientName }: { clientName: string })
             </Accordion>
 
             <div className="pt-4">
-              <Button type="submit" size="lg" className="w-full" disabled={form.formState.isSubmitted}>Enviar Relatório</Button>
+              <Button type="submit" size="lg" className="w-full" disabled={form.formState.isSubmitting || form.formState.isSubmitted}>
+                {form.formState.isSubmitting ? "Enviando..." : "Enviar Relatório"}
+              </Button>
             </div>
           </form>
         </Form>
