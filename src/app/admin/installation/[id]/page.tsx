@@ -8,7 +8,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format, isPast, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Video, Bolt, Clock, CheckCircle, XCircle, FileText, Activity, FileJson, Files, Upload, ListChecks, Hourglass, Send, ThumbsUp, ThumbsDown, Archive, ArchiveRestore, Link as LinkIcon } from "lucide-react";
+import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Video, Bolt, Clock, CheckCircle, XCircle, FileText, Activity, FileJson, Files, Upload, ListChecks, Hourglass, Send, ThumbsUp, ThumbsDown, Archive, ArchiveRestore, Link as LinkIcon, Printer } from "lucide-react";
+import Link from "next/link";
 
 import { type Installation, InstallationStatus, ProjectStatus, HomologationStatus } from "@/app/admin/page";
 import { Button } from "@/components/ui/button";
@@ -478,6 +479,12 @@ export default function InstallationDetailPage() {
             {installation.archived && <Badge variant="destructive">Arquivado</Badge>}
             </h1>
         </div>
+        <Link href={`/admin/installation/${id}/print`} passHref>
+          <Button variant="outline">
+            <Printer className="mr-2 h-4 w-4" />
+            Imprimir / Gerar PDF
+          </Button>
+        </Link>
         <AlertDialog>
             <AlertDialogTrigger asChild>
                 <Button variant="outline" disabled={!isArchivable}>

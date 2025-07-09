@@ -123,3 +123,20 @@
     @apply bg-accent text-accent-foreground;
   }
 }
+
+@media print {
+    body {
+        background-color: white;
+    }
+    .no-print {
+        display: none;
+    }
+    @page {
+        size: A4;
+        margin: 0;
+    }
+    html, body {
+        width: 210mm;
+        height: 297mm;
+    }
+}
