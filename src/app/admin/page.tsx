@@ -303,14 +303,14 @@ export default function AdminPage() {
                   </CardHeader>
                   <CardContent className="flex-grow space-y-3">
                      <div className="text-sm text-muted-foreground">
-                        <p className="flex items-center gap-2">
+                        <div className="flex items-center gap-2">
                            <FileText size={14} /> Relatório do Instalador: 
                            {inst.reportSubmitted ? (
                                 <Badge variant="default" className="bg-blue-600 hover:bg-blue-700">Enviado</Badge>
                             ) : (
                                 <Badge variant="secondary">Pendente</Badge>
                             )}
-                        </p>
+                        </div>
                      </div>
                       <div className="text-sm text-muted-foreground">
                         <p className="flex items-center gap-2">
@@ -540,5 +540,3 @@ export default function AdminPage() {
     </>
   );
 }
-
-    
