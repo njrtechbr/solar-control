@@ -188,7 +188,7 @@ const createSampleReport = () => {
           { file: null, dataUrl: "https://placehold.co/600x400.png", annotation: "Fachada da residência." },
       ],
       installationVideo: null,
-      installationVideoDataUrl: "https://placehold.co/480x360.mp4",
+      installationVideoDataUrl: "",
   };
 };
 
@@ -540,5 +540,3 @@ export default function AdminPage() {
     </>
   );
 }
-
-    
