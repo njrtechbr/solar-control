@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Link as LinkIcon, User, SunMedium, Copy, Home, Building, Bolt, FileText, Trash2, Edit, MoreHorizontal, AlertTriangle, FileCheck2, Camera, Video, PlusCircle, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Link as LinkIcon, User, SunMedium, Copy, Home, Building, Bolt, FileText, Trash2, Edit, MoreHorizontal, AlertTriangle, FileCheck2, Camera, Video, PlusCircle, CheckCircle, XCircle, Clock, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -50,6 +50,8 @@ import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { generateFinalReport, type GenerateFinalReportInput } from "@/ai/flows/generate-report-flow";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const installationSchema = z.object({
   id: z.number().optional(),
@@ -67,6 +69,13 @@ const installationSchema = z.object({
 });
 
 type Installation = z.infer<typeof installationSchema>;
+
+const finalReportSchema = z.object({
+    protocolNumber: z.string().min(1, "O número do protocolo é obrigatório."),
+});
+
+type FinalReportValues = z.infer<typeof finalReportSchema>;
+
 
 const initialInstallations: Installation[] = [
     { id: 1, clientName: "Condomínio Sol Nascente", address: "Rua A, 123", city: "Campinas", state: "SP", zipCode: "13000-001", installationType: "comercial", utilityCompany: "CPFL", status: "Pendente", reportSubmitted: false },
@@ -111,6 +120,9 @@ export default function AdminPage() {
   const [viewingReport, setViewingReport] = useState<any | null>(null);
   const [linkDialog, setLinkDialog] = useState({ isOpen: false, link: "" });
   const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
+  const [generatedFinalReport, setGeneratedFinalReport] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+
 
   useEffect(() => {
     // Load installations from localStorage on mount
@@ -156,6 +168,35 @@ export default function AdminPage() {
     resolver: zodResolver(installationSchema),
   });
 
+  const finalReportForm = useForm<FinalReportValues>({
+    resolver: zodResolver(finalReportSchema),
+  });
+
+  async function handleGenerateFinalReport(values: FinalReportValues) {
+    if (!viewingReport) return;
+    
+    setIsGenerating(true);
+    setGeneratedFinalReport(null);
+    try {
+        const input: GenerateFinalReportInput = {
+            installerReport: JSON.stringify(viewingReport),
+            protocolNumber: values.protocolNumber,
+        };
+        const result = await generateFinalReport(input);
+        setGeneratedFinalReport(result.finalReport);
+
+    } catch(error) {
+        console.error("Error generating final report:", error);
+        toast({
+            title: "Erro ao Gerar Relatório",
+            description: "Não foi possível gerar o relatório final. Tente novamente.",
+            variant: "destructive"
+        })
+    } finally {
+        setIsGenerating(false);
+    }
+  }
+
   function handleCreate(values: Installation) {
     const newInstallation = { ...values, id: Date.now(), reportSubmitted: false };
     saveInstallations([...installations, newInstallation]);
@@ -191,11 +232,10 @@ export default function AdminPage() {
     setLinkDialog({ isOpen: true, link });
   }
 
-  function copyLinkToClipboard() {
-    navigator.clipboard.writeText(linkDialog.link);
+  function copyToClipboard(text: string, message: string) {
+    navigator.clipboard.writeText(text);
     toast({
-      title: "Link Copiado!",
-      description: "O link foi copiado para a área de transferência.",
+      title: message,
     });
   }
 
@@ -203,6 +243,8 @@ export default function AdminPage() {
     const reportData = localStorage.getItem(`report_${clientName}`);
     if (reportData) {
         setViewingReport(JSON.parse(reportData));
+        setGeneratedFinalReport(null); // Reset previous generation
+        finalReportForm.reset();
     } else {
         toast({
             title: "Relatório não encontrado",
@@ -453,7 +495,7 @@ export default function AdminPage() {
           <div className="flex items-center space-x-2 rounded-md border bg-muted p-2">
             <LinkIcon className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
             <Input id="link" value={linkDialog.link} readOnly className="flex-1 bg-transparent ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 border-0" />
-            <Button type="button" size="sm" className="px-3" onClick={copyLinkToClipboard}>
+            <Button type="button" size="sm" className="px-3" onClick={() => copyToClipboard(linkDialog.link, "Link copiado!")}>
               <span className="sr-only">Copiar</span>
               <Copy className="h-4 w-4" />
             </Button>
@@ -563,6 +605,47 @@ export default function AdminPage() {
                                 </>
                             )}
                         </div>
+
+                         <Separator />
+                        <div className="space-y-4 pt-4">
+                            <h3 className="font-semibold text-lg flex items-center gap-2"><Sparkles className="text-primary"/>Gerador de Relatório Final</h3>
+                            <Form {...finalReportForm}>
+                                <form onSubmit={finalReportForm.handleSubmit(handleGenerateFinalReport)} className="space-y-4">
+                                    <FormField control={finalReportForm.control} name="protocolNumber" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Número de Protocolo</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Insira o número do protocolo" {...field}/>
+                                            </FormControl>
+                                            <FormMessage/>
+                                        </FormItem>
+                                    )}/>
+                                    <Button type="submit" disabled={isGenerating}>
+                                        {isGenerating ? "Gerando..." : "Gerar Relatório Final com IA"}
+                                    </Button>
+                                </form>
+                            </Form>
+                            {isGenerating && (
+                                <div className="space-y-2 pt-4">
+                                    <Skeleton className="h-4 w-1/4" />
+                                    <Skeleton className="h-4 w-full" />
+                                    <Skeleton className="h-4 w-full" />
+                                    <Skeleton className="h-4 w-3/4" />
+                                </div>
+                            )}
+                            {generatedFinalReport && (
+                                <div className="space-y-2 pt-4">
+                                    <div className="flex justify-between items-center">
+                                       <h4 className="font-semibold">Relatório Final Gerado</h4>
+                                       <Button variant="ghost" size="sm" onClick={() => copyToClipboard(generatedFinalReport, "Relatório copiado!")}>
+                                            <Copy className="mr-2 h-4 w-4"/>
+                                            Copiar
+                                       </Button>
+                                    </div>
+                                    <p className="p-4 border rounded-md bg-muted/50 whitespace-pre-wrap">{generatedFinalReport}</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
                 </ScrollArea>
@@ -576,5 +659,3 @@ export default function AdminPage() {
     </>
   );
 }
-
-    
