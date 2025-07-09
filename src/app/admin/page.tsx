@@ -82,8 +82,6 @@ export default function AdminPage() {
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     const baseUrl = window.location.origin;
-    // O ideal é passar todos os dados via query params ou apenas um ID
-    // mas por simplicidade, passaremos apenas o nome do cliente por enquanto.
     const link = `${baseUrl}/?client=${encodeURIComponent(values.clientName)}`;
     setGeneratedLink(link);
     setIsDialogOpen(true);
@@ -106,21 +104,60 @@ export default function AdminPage() {
             <h1 className="text-xl font-bold text-foreground">SolarView Pro - Admin</h1>
           </div>
         </header>
-        <main className="flex flex-1 flex-col gap-8 p-4 md:p-8">
-          <Card className="w-full">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Cadastrar Nova Instalação
-              </CardTitle>
-              <CardDescription>
-                Insira os dados do cliente para gerar um link de questionário para o instalador.
-              </CardDescription>
-            </CardHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)}>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <main className="flex flex-1 flex-col gap-8 p-4 md:grid md:grid-cols-2 md:gap-8 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <Card className="h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5"/> Instalações Cadastradas</CardTitle>
+                <CardDescription>Visualize e gerencie as instalações pendentes e concluídas.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                  <Table>
+                      <TableHeader>
+                          <TableRow>
+                              <TableHead>Cliente</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead className="text-right">Ações</TableHead>
+                          </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                          {mockInstallations.map((inst) => (
+                          <TableRow key={inst.id}>
+                              <TableCell className="font-medium">{inst.clientName}</TableCell>
+                              <TableCell>
+                                  <Badge variant={inst.status === 'Concluído' ? 'default' : 'secondary'}>{inst.status}</Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                  <Button variant="outline" size="sm" onClick={() => {
+                                      setGeneratedLink(`${window.location.origin}${inst.link}`);
+                                      setIsDialogOpen(true);
+                                  }}>
+                                      <Link className="mr-2 h-3 w-3" />
+                                      Ver Link
+                                  </Button>
+                              </TableCell>
+                          </TableRow>
+                          ))}
+                      </TableBody>
+                  </Table>
+              </CardContent>
+            </Card>
+          </div>
+          
+          <div className="lg:col-span-1">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Cadastrar Nova Instalação
+                </CardTitle>
+                <CardDescription>
+                  Insira os dados do cliente para gerar um link para o instalador.
+                </CardDescription>
+              </CardHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)}>
+                  <CardContent className="space-y-6">
                     <FormField control={form.control} name="clientName" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Nome do Cliente</FormLabel>
@@ -146,38 +183,36 @@ export default function AdminPage() {
                           <FormMessage />
                         </FormItem>
                     )}/>
-                  </div>
-                   <FormField control={form.control} name="address" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Endereço</FormLabel>
-                        <FormControl><Input placeholder="Rua, Número, Bairro" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}/>
-                  <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                     <FormField control={form.control} name="city" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Cidade</FormLabel>
-                        <FormControl><Input {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}/>
-                     <FormField control={form.control} name="state" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Estado</FormLabel>
-                        <FormControl><Input {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}/>
-                     <FormField control={form.control} name="zipCode" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>CEP</FormLabel>
-                        <FormControl><Input placeholder="00000-000" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}/>
-                  </div>
-                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                     <FormField control={form.control} name="address" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Endereço</FormLabel>
+                          <FormControl><Input placeholder="Rua, Número, Bairro" {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}/>
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                       <FormField control={form.control} name="city" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Cidade</FormLabel>
+                          <FormControl><Input {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}/>
+                       <FormField control={form.control} name="state" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Estado</FormLabel>
+                          <FormControl><Input {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}/>
+                       <FormField control={form.control} name="zipCode" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>CEP</FormLabel>
+                          <FormControl><Input placeholder="00000-000" {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}/>
+                    </div>
                      <FormField control={form.control} name="utilityCompany" render={({ field }) => (
                       <FormItem>
                         <FormLabel className="flex items-center gap-2"><Bolt size={16}/> Concessionária</FormLabel>
@@ -185,54 +220,17 @@ export default function AdminPage() {
                         <FormMessage />
                       </FormItem>
                     )}/>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button type="submit" className="w-full md:w-auto">
-                    <Link className="mr-2 h-4 w-4" />
-                    Gerar Link para o Instalador
-                  </Button>
-                </CardFooter>
-              </form>
-            </Form>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5"/> Instalações Cadastradas</CardTitle>
-              <CardDescription>Visualize e gerencie as instalações pendentes e concluídas.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Cliente</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Ações</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {mockInstallations.map((inst) => (
-                        <TableRow key={inst.id}>
-                            <TableCell className="font-medium">{inst.clientName}</TableCell>
-                            <TableCell>
-                                <Badge variant={inst.status === 'Concluído' ? 'default' : 'secondary'}>{inst.status}</Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                                <Button variant="outline" size="sm" onClick={() => {
-                                    setGeneratedLink(`${window.location.origin}${inst.link}`);
-                                    setIsDialogOpen(true);
-                                }}>
-                                    <Link className="mr-2 h-3 w-3" />
-                                    Ver Link
-                                </Button>
-                            </TableCell>
-                        </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </CardContent>
-          </Card>
+                  </CardContent>
+                  <CardFooter>
+                    <Button type="submit" className="w-full">
+                      <Link className="mr-2 h-4 w-4" />
+                      Gerar Link para o Instalador
+                    </Button>
+                  </CardFooter>
+                </form>
+              </Form>
+            </Card>
+          </div>
 
         </main>
       </div>
