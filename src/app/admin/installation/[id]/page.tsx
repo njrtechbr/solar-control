@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format, isPast, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Video, Bolt, Clock, CheckCircle, XCircle, FileText, Activity, FileJson, Files, Upload, ListChecks, Hourglass, Send, ThumbsUp, ThumbsDown, Archive } from "lucide-react";
+import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Video, Bolt, Clock, CheckCircle, XCircle, FileText, Activity, FileJson, Files, Upload, ListChecks, Hourglass, Send, ThumbsUp, ThumbsDown, Archive, ArchiveRestore } from "lucide-react";
 
 import { type Installation, InstallationStatus, ProjectStatus, HomologationStatus } from "@/app/admin/page";
 import { Button } from "@/components/ui/button";
@@ -454,6 +454,9 @@ export default function InstallationDetailPage() {
 
   const isOverdue = installation.status === "Agendado" && installation.scheduledDate && isPast(new Date(installation.scheduledDate));
   const overdueDays = installation.scheduledDate ? differenceInDays(new Date(), new Date(installation.scheduledDate)) : 0;
+  const canBeArchived = !installation.archived && (installation.status === 'Concluído' || installation.status === 'Cancelado');
+  const isArchivable = installation.archived || canBeArchived;
+
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -465,13 +468,14 @@ export default function InstallationDetailPage() {
         <div className="flex-1">
           <h1 className="font-semibold text-lg md:text-xl truncate flex items-center gap-2">
             {installation.clientName}
+            <span className="font-normal text-muted-foreground text-base">({installation.installationId})</span>
             {installation.archived && <Badge variant="destructive">Arquivado</Badge>}
             </h1>
         </div>
         <AlertDialog>
             <AlertDialogTrigger asChild>
-                <Button variant="outline">
-                    <Archive className="mr-2 h-4 w-4" />
+                <Button variant="outline" disabled={!isArchivable}>
+                    {installation.archived ? <ArchiveRestore className="mr-2 h-4 w-4" /> : <Archive className="mr-2 h-4 w-4" />}
                     {installation.archived ? "Desarquivar" : "Arquivar"}
                 </Button>
             </AlertDialogTrigger>

@@ -43,6 +43,7 @@ export const HomologationStatus = z.enum(["Pendente", "Aprovado", "Reprovado"]);
 
 const installationSchema = z.object({
   id: z.number().optional(),
+  installationId: z.string().optional(),
   clientName: z.string().min(2, "O nome do cliente é obrigatório."),
   address: z.string().min(5, "O endereço é obrigatório."),
   city: z.string().min(2, "A cidade é obrigatória."),
@@ -107,6 +108,7 @@ const REPORT_STATUS_COLUMNS: KanbanColumnType[] = [
 const initialInstallations: Installation[] = [
     { 
       id: 1, 
+      installationId: "INST-001",
       clientName: "Condomínio Sol Nascente", 
       address: "Rua A, 123", 
       city: "Campinas", 
@@ -134,6 +136,7 @@ const initialInstallations: Installation[] = [
     },
     { 
       id: 2, 
+      installationId: "INST-002",
       clientName: "Maria Silva", 
       address: "Rua B, 456", 
       city: "São Paulo", 
@@ -164,6 +167,7 @@ const initialInstallations: Installation[] = [
     },
     { 
       id: 3, 
+      installationId: "INST-003",
       clientName: "Supermercado Economia", 
       address: "Av. C, 789", 
       city: "Valinhos", 
@@ -185,6 +189,7 @@ const initialInstallations: Installation[] = [
     },
     { 
       id: 4, 
+      installationId: "INST-004",
       clientName: "João Pereira", 
       address: "Rua D, 101", 
       city: "Jundiaí", 
@@ -204,6 +209,7 @@ const initialInstallations: Installation[] = [
     },
     { 
       id: 5, 
+      installationId: "INST-005",
       clientName: "Oficina Mecânica Veloz", 
       address: "Rua E, 202", 
       city: "Indaiatuba", 
@@ -261,7 +267,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     let savedInstallations = localStorage.getItem('installations');
-    if (!savedInstallations) {
+    if (!savedInstallations || JSON.parse(savedInstallations).length === 0) {
         localStorage.setItem('installations', JSON.stringify(initialInstallations));
         savedInstallations = JSON.stringify(initialInstallations);
     }
@@ -309,9 +315,11 @@ export default function AdminPage() {
   });
   
   function handleCreate(values: Installation) {
+    const nextId = installations.length > 0 ? Math.max(...installations.map(i => i.id!)) + 1 : 1;
     const newInstallation: Installation = { 
         ...values, 
-        id: Date.now(), 
+        id: nextId,
+        installationId: `INST-${String(nextId).padStart(3, '0')}`,
         reportSubmitted: false, 
         events: [], 
         documents: [], 
