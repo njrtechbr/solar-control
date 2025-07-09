@@ -1,11 +1,12 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { User, SunMedium, Home, Building, Bolt, PlusCircle, LayoutDashboard, ListChecks, FileText, CheckCircle } from "lucide-react";
+import { User, SunMedium, Home, Building, Bolt, PlusCircle, LayoutDashboard, ListChecks, FileText, CheckCircle, List } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +31,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { KanbanBoard, KanbanColumnType } from "./_components/kanban-board";
+import { InstallationTable, getColumns } from "./_components/installation-table";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -70,6 +72,7 @@ const installationSchema = z.object({
     type: z.string(),
     date: z.string(),
   })).default([]),
+  archived: z.boolean().default(false),
 });
 
 export type Installation = z.infer<typeof installationSchema>;
@@ -126,7 +129,8 @@ const initialInstallations: Installation[] = [
       ], 
       documents: [
         { name: 'projeto_preliminar.pdf', dataUrl: '#', type: 'application/pdf', date: new Date(Date.now() - 86400000 * 9).toISOString() }
-      ] 
+      ],
+      archived: false
     },
     { 
       id: 2, 
@@ -155,7 +159,8 @@ const initialInstallations: Installation[] = [
       documents: [
          { name: 'art_assinada.pdf', dataUrl: '#', type: 'application/pdf', date: new Date(Date.now() - 86400000 * 14).toISOString() },
          { name: 'contrato_servico.pdf', dataUrl: '#', type: 'application/pdf', date: new Date(Date.now() - 86400000 * 16).toISOString() }
-      ]
+      ],
+      archived: false
     },
     { 
       id: 3, 
@@ -175,7 +180,8 @@ const initialInstallations: Installation[] = [
       events: [
         { id: '1', date: new Date(Date.now() - 86400000 * 10).toISOString(), type: 'Nota', description: 'Cliente solicitou cancelamento por motivos financeiros. Arquivar.', attachments: []}
       ], 
-      documents: [] 
+      documents: [],
+      archived: true,
     },
     { 
       id: 4, 
@@ -193,7 +199,8 @@ const initialInstallations: Installation[] = [
       status: "Pendente", 
       reportSubmitted: false, 
       events: [], 
-      documents: [] 
+      documents: [],
+      archived: false,
     },
     { 
       id: 5, 
@@ -211,7 +218,8 @@ const initialInstallations: Installation[] = [
       status: "Pendente", 
       reportSubmitted: false, 
       events: [], 
-      documents: [] 
+      documents: [],
+      archived: false,
     },
 ];
 
@@ -249,14 +257,16 @@ const createSampleReport = () => {
 export default function AdminPage() {
   const [installations, setInstallations] = useState<Installation[]>([]);
   const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
+  const [filters, setFilters] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
-    const savedInstallations = localStorage.getItem('installations');
+    let savedInstallations = localStorage.getItem('installations');
     if (!savedInstallations) {
         localStorage.setItem('installations', JSON.stringify(initialInstallations));
+        savedInstallations = JSON.stringify(initialInstallations);
     }
     
-    const loadedInstallations = JSON.parse(localStorage.getItem('installations') || '[]') as Installation[];
+    const loadedInstallations = JSON.parse(savedInstallations) as Installation[];
 
     const sampleReportKey = 'report_Maria Silva';
     if (!localStorage.getItem(sampleReportKey)) {
@@ -294,6 +304,7 @@ export default function AdminPage() {
       reportSubmitted: false,
       events: [],
       documents: [],
+      archived: false,
     },
   });
   
@@ -308,6 +319,7 @@ export default function AdminPage() {
         status: "Pendente",
         projectStatus: "Não Enviado",
         homologationStatus: "Pendente",
+        archived: false,
      };
     
     if (values.protocolNumber) {
@@ -338,13 +350,12 @@ export default function AdminPage() {
     
     if (installation[statusType] === newStatus) return;
 
-    // A bit of type magic to satisfy TypeScript
     const valueToSet: string | boolean = statusType === 'reportSubmitted' ? (newStatus === 'Enviado') : newStatus;
     (installation as any)[statusType] = valueToSet;
     eventDescription = `Status de '${statusType}' alterado de "${oldStatus}" para "${newStatus}".`;
 
     if (statusType === "status" && newStatus === "Agendado" && !installation.scheduledDate) {
-        const scheduledDate = new Date(Date.now() + 86400000 * 7); // Schedule for 7 days from now as a default
+        const scheduledDate = new Date(Date.now() + 86400000 * 7);
         installation.scheduledDate = scheduledDate.toISOString();
         const scheduleEvent = {
             id: new Date().toISOString() + "_schedule",
@@ -356,8 +367,6 @@ export default function AdminPage() {
         installation.events.push(scheduleEvent);
     }
     
-
-    // Add event
     const newEvent = {
         id: new Date().toISOString(),
         date: new Date().toISOString(),
@@ -374,6 +383,50 @@ export default function AdminPage() {
         description: `${installation.clientName} movido para "${newStatus}".`
     });
   }
+
+  const handleArchiveToggle = (id: number) => {
+    const allInstallations = [...installations];
+    const installationIndex = allInstallations.findIndex(inst => inst.id === id);
+    if (installationIndex === -1) return;
+    
+    const installation = allInstallations[installationIndex];
+    const isArchiving = !installation.archived;
+    installation.archived = isArchiving;
+    
+    allInstallations[installationIndex] = installation;
+    saveInstallations(allInstallations);
+    toast({
+      title: `Instalação ${isArchiving ? 'Arquivada' : 'Desarquivada'}!`,
+      description: `O cliente ${installation.clientName} foi ${isArchiving ? 'arquivado' : 'restaurado'}.`
+    });
+  };
+
+  const tableColumns = useMemo(() => getColumns(handleArchiveToggle), []);
+
+  const handleSearch = (value: string) => {
+    setFilters(prev => ({ ...prev, global: value }));
+  };
+
+  const handleFilterChange = (key: keyof Installation, value: string) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const resetFilters = () => setFilters({});
+
+  const filteredInstallations = useMemo(() => {
+    let filtered = [...installations];
+    const globalFilter = filters['global']?.toLowerCase();
+    
+    if (globalFilter) {
+      filtered = filtered.filter(inst => 
+        inst.clientName.toLowerCase().includes(globalFilter) ||
+        inst.city.toLowerCase().includes(globalFilter)
+      );
+    }
+    return filtered;
+  }, [installations, filters]);
+
+  const activeInstallations = installations.filter(inst => !inst.archived);
 
   return (
     <>
@@ -478,12 +531,13 @@ export default function AdminPage() {
                     <TabsTrigger value="process-status"><ListChecks className="mr-2 h-4 w-4" />Status do Projeto</TabsTrigger>
                     <TabsTrigger value="homologation-status"><CheckCircle className="mr-2 h-4 w-4" />Status da Homologação</TabsTrigger>
                     <TabsTrigger value="report-status"><FileText className="mr-2 h-4 w-4" />Status do Relatório</TabsTrigger>
+                    <TabsTrigger value="list-view"><List className="mr-2 h-4 w-4" />Lista Completa</TabsTrigger>
                 </TabsList>
                 <div className="flex-grow overflow-x-auto">
                     <TabsContent value="installation-status" className="h-full">
                          <div className="min-w-[1200px] h-full">
                             <KanbanBoard 
-                                installations={installations} 
+                                installations={activeInstallations} 
                                 columns={INSTALLATION_STATUS_COLUMNS}
                                 onItemMove={handleItemMove} 
                                 statusType="status"
@@ -493,7 +547,7 @@ export default function AdminPage() {
                     <TabsContent value="process-status" className="h-full">
                         <div className="min-w-[900px] h-full">
                             <KanbanBoard 
-                                installations={installations} 
+                                installations={activeInstallations} 
                                 columns={PROCESS_STATUS_COLUMNS}
                                 onItemMove={handleItemMove} 
                                 statusType="projectStatus"
@@ -503,7 +557,7 @@ export default function AdminPage() {
                     <TabsContent value="homologation-status" className="h-full">
                         <div className="min-w-[700px] h-full">
                             <KanbanBoard 
-                                installations={installations} 
+                                installations={activeInstallations} 
                                 columns={HOMOLOGATION_STATUS_COLUMNS}
                                 onItemMove={handleItemMove} 
                                 statusType="homologationStatus"
@@ -513,12 +567,22 @@ export default function AdminPage() {
                      <TabsContent value="report-status" className="h-full">
                         <div className="min-w-[500px] h-full">
                             <KanbanBoard 
-                                installations={installations} 
+                                installations={activeInstallations} 
                                 columns={REPORT_STATUS_COLUMNS}
                                 onItemMove={handleItemMove} 
                                 statusType="reportSubmitted"
                             />
                         </div>
+                    </TabsContent>
+                    <TabsContent value="list-view" className="h-full">
+                        <InstallationTable 
+                            data={filteredInstallations} 
+                            columns={tableColumns} 
+                            onSearch={handleSearch}
+                            onFilterChange={handleFilterChange}
+                            onResetFilters={resetFilters}
+                            filters={filters}
+                        />
                     </TabsContent>
                 </div>
             </Tabs>

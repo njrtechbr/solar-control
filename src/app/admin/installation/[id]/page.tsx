@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format, isPast, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Video, Bolt, Clock, CheckCircle, XCircle, FileText, Activity, FileJson, Files, Upload, ListChecks, Hourglass, Send, ThumbsUp, ThumbsDown } from "lucide-react";
+import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Video, Bolt, Clock, CheckCircle, XCircle, FileText, Activity, FileJson, Files, Upload, ListChecks, Hourglass, Send, ThumbsUp, ThumbsDown, Archive } from "lucide-react";
 
 import { type Installation, InstallationStatus, ProjectStatus, HomologationStatus } from "@/app/admin/page";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,17 @@ import {
   DialogTrigger,
   DialogClose
 } from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -51,7 +62,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 
@@ -311,6 +321,19 @@ export default function InstallationDetailPage() {
     setDocumentDialogOpen(false);
   }
 
+  const handleArchiveToggle = () => {
+    if (!installation) return;
+    const isArchiving = !installation.archived;
+    const updatedInstallation = {
+        ...installation,
+        archived: isArchiving
+    };
+    updateInstallation(updatedInstallation, {
+        title: `Instalação ${isArchiving ? 'Arquivada' : 'Desarquivada'}!`,
+        description: `O cliente ${installation.clientName} foi ${isArchiving ? 'arquivado' : 'restaurado'}.`
+    });
+  }
+
   const copyToClipboard = (text: string, message: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: message });
@@ -440,8 +463,36 @@ export default function InstallationDetailPage() {
           <span className="sr-only">Voltar</span>
         </Button>
         <div className="flex-1">
-          <h1 className="font-semibold text-lg md:text-xl truncate">{installation.clientName}</h1>
+          <h1 className="font-semibold text-lg md:text-xl truncate flex items-center gap-2">
+            {installation.clientName}
+            {installation.archived && <Badge variant="destructive">Arquivado</Badge>}
+            </h1>
         </div>
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                <Button variant="outline">
+                    <Archive className="mr-2 h-4 w-4" />
+                    {installation.archived ? "Desarquivar" : "Arquivar"}
+                </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    {installation.archived 
+                        ? "Esta ação irá desarquivar a instalação, fazendo com que ela apareça novamente nos quadros Kanban."
+                        : "Esta ação irá arquivar a instalação, removendo-a das visualizações principais do Kanban. Você ainda poderá acessá-la pela lista completa."
+                    }
+                </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleArchiveToggle}>
+                    Confirmar
+                </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
       </header>
 
       <main className="flex-1 p-4 md:p-6 grid gap-6 md:grid-cols-3 lg:grid-cols-4">
