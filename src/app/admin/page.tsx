@@ -437,52 +437,80 @@ export default function AdminPage() {
             <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>Relatório de Instalação - {viewingReport?.clientName}</DialogTitle>
-                    <DialogDescription>Detalhes preenchidos pelo instalador.</DialogDescription>
+                    <DialogDescription>Detalhes completos preenchidos pelo instalador.</DialogDescription>
                 </DialogHeader>
                 <ScrollArea className="max-h-[70vh] pr-6">
                 {viewingReport && (
-                    <div className="space-y-4 py-4">
-                        <h3 className="font-semibold text-lg">Informações Gerais</h3>
-                        <p><strong>Potência do Painel:</strong> {viewingReport.panelPower || 'N/A'} Wp</p>
+                    <div className="space-y-6 py-4 text-sm">
+                        
+                        <div>
+                            <h3 className="font-semibold text-lg mb-2">Informações Gerais</h3>
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                                <p><strong>Cliente:</strong> {viewingReport.clientName}</p>
+                                <p><strong>Potência do Painel:</strong> {viewingReport.panelPower || 'N/A'} Wp</p>
+                            </div>
+                        </div>
                         <Separator />
 
-                        <h3 className="font-semibold text-lg mt-4">Medições das Strings (VCC)</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                            {viewingReport.strings.map((s: any, i: number) => (
-                                (s.voltage || s.plates) && <div key={i}><p className="font-medium">String {i+1}:</p> Tensão: {s.voltage || 'N/A'}V, Placas: {s.plates || 'N/A'}</div>
-                            ))}
+                        <div>
+                            <h3 className="font-semibold text-lg mb-2">Medições das Strings (VCC)</h3>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                {viewingReport.strings.map((s: any, i: number) => (
+                                    (s.voltage || s.plates) && (
+                                    <div key={i} className="p-2 border rounded-md bg-muted/50">
+                                        <p className="font-medium">String {i+1}</p> 
+                                        <p>Tensão: {s.voltage || 'N/A'} V</p>
+                                        <p>Placas: {s.plates || 'N/A'}</p>
+                                    </div>
+                                    )
+                                ))}
+                            </div>
                         </div>
                          <Separator />
 
-                        <h3 className="font-semibold text-lg mt-4">Medições Elétricas (CA)</h3>
-                        <div className="grid grid-cols-2 gap-x-8 gap-y-2">
-                            <p><strong>F1 x N:</strong> {viewingReport.phase1Neutro || 'N/A'} V</p>
-                            <p><strong>F2 x N:</strong> {viewingReport.phase2Neutro || 'N/A'} V</p>
-                            <p><strong>F3 x N:</strong> {viewingReport.phase3Neutro || 'N/A'} V</p>
-                            <p><strong>F1 x F2:</strong> {viewingReport.phase1phase2 || 'N/A'} V</p>
-                            <p><strong>F1 x F3:</strong> {viewingReport.phase1phase3 || 'N/A'} V</p>
-                            <p><strong>F2 x F3:</strong> {viewingReport.phase2phase3 || 'N/A'} V</p>
-                            <p><strong>Fase x Terra:</strong> {viewingReport.phaseTerra || 'N/A'} V</p>
-                            <p><strong>Neutro x Terra:</strong> {viewingReport.neutroTerra || 'N/A'} V</p>
+                        <div>
+                            <h3 className="font-semibold text-lg mb-2">Medições Elétricas (CA)</h3>
+                            <div className="grid grid-cols-2 gap-x-8 gap-y-1">
+                                <p><strong>F1 x N:</strong> {viewingReport.phase1Neutro || 'N/A'} V</p>
+                                <p><strong>F2 x N:</strong> {viewingReport.phase2Neutro || 'N/A'} V</p>
+                                <p><strong>F3 x N:</strong> {viewingReport.phase3Neutro || 'N/A'} V</p>
+                                <p><strong>F1 x F2:</strong> {viewingReport.phase1phase2 || 'N/A'} V</p>
+                                <p><strong>F1 x F3:</strong> {viewingReport.phase1phase3 || 'N/A'} V</p>
+                                <p><strong>F2 x F3:</strong> {viewingReport.phase2phase3 || 'N/A'} V</p>
+                                <p><strong>Fase x Terra:</strong> {viewingReport.phaseTerra || 'N/A'} V</p>
+                                <p><strong>Neutro x Terra:</strong> {viewingReport.neutroTerra || 'N/A'} V</p>
+                            </div>
                         </div>
                          <Separator />
-
-                        <h3 className="font-semibold text-lg mt-4">Componentes e Cabeamento</h3>
-                        <p><strong>Cabo Medidor x Disjuntor:</strong> {viewingReport.cableMeterToBreaker || 'N/A'}</p>
-                        <p><strong>Cabo Disjuntor x Inversor:</strong> {viewingReport.cableBreakerToInverter || 'N/A'}</p>
-                        <p><strong>Disjuntor Geral:</strong> {viewingReport.generalBreaker || 'N/A'}</p>
-                        <p><strong>Disjuntor Inversor:</strong> {viewingReport.inverterBreaker || 'N/A'}</p>
+                        
+                        <div>
+                            <h3 className="font-semibold text-lg mb-2">Componentes e Cabeamento</h3>
+                            <div className="grid grid-cols-2 gap-x-8 gap-y-1">
+                                <p><strong>Cabo Medidor x Disjuntor:</strong> {viewingReport.cableMeterToBreaker || 'N/A'}</p>
+                                <p><strong>Cabo Disjuntor x Inversor:</strong> {viewingReport.cableBreakerToInverter || 'N/A'}</p>
+                                <p><strong>Disjuntor Geral:</strong> {viewingReport.generalBreaker || 'N/A'}</p>
+                                <p><strong>Disjuntor Inversor:</strong> {viewingReport.inverterBreaker || 'N/A'}</p>
+                            </div>
+                        </div>
                         <Separator />
                         
-                        <h3 className="font-semibold text-lg mt-4">Verificação Final</h3>
-                         <p><strong>Datalogger Online:</strong> {viewingReport.dataloggerConnected ? 'Sim' : 'Não'}</p>
-                        {viewingReport.observations && <p><strong>Observações:</strong> {viewingReport.observations}</p>}
-
+                        <div>
+                            <h3 className="font-semibold text-lg mb-2">Verificação Final</h3>
+                            <p><strong>Datalogger Online:</strong> {viewingReport.dataloggerConnected ? 'Sim' : 'Não'}</p>
+                            {viewingReport.observations && (
+                                <>
+                                    <p className="font-medium mt-2">Observações:</p>
+                                    <p className="p-2 border rounded-md bg-muted/50 whitespace-pre-wrap">{viewingReport.observations}</p>
+                                </>
+                            )}
+                        </div>
                     </div>
                 )}
                 </ScrollArea>
                 <DialogFooter>
-                    <Button onClick={() => setViewingReport(null)}>Fechar</Button>
+                    <DialogClose asChild>
+                        <Button variant="outline">Fechar</Button>
+                    </DialogClose>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
