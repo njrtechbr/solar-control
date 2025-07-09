@@ -90,11 +90,11 @@ const PHOTO_UPLOADS = [
   { id: "photo12", label: "Ponto de Conexão" },
 ];
 
-export default function InstallationLogPage() {
+export default function InstallationForm({ clientName }: { clientName: string }) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      clientName: "",
+      clientName: clientName || "",
       strings: Array(6).fill({ voltage: undefined, plates: undefined }),
       photo_uploads: Array(12).fill({ file: undefined, annotation: "" }),
       dataloggerConnected: false,
@@ -104,8 +104,8 @@ export default function InstallationLogPage() {
   function onSubmit(data: FormValues) {
     console.log(data);
     toast({
-      title: "Registro Enviado",
-      description: "As informações da instalação foram salvas com sucesso.",
+      title: "Registro Enviado com Sucesso!",
+      description: "As informações da instalação foram salvas. Você pode fechar esta página.",
     });
   }
 
@@ -132,8 +132,8 @@ export default function InstallationLogPage() {
                   <div className="space-y-4 rounded-lg border p-4">
                     <FormField control={form.control} name="clientName" render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Cliente - Nome do Grupo</FormLabel>
-                          <FormControl><Input placeholder="Ex: Condomínio Sol Nascente" {...field} /></FormControl>
+                          <FormLabel>Cliente</FormLabel>
+                          <FormControl><Input {...field} readOnly disabled /></FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -308,5 +308,3 @@ export default function InstallationLogPage() {
     </div>
   );
 }
-
-    
