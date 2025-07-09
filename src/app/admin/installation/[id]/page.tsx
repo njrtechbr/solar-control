@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Camera, Video, Bolt, Clock } from "lucide-react";
+import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Camera, Video, Bolt, Clock, CheckCircle, XCircle, FileText } from "lucide-react";
 
 import { type Installation } from "@/app/admin/page";
 import { Button } from "@/components/ui/button";
@@ -50,6 +50,7 @@ import { generateFinalReport, type GenerateFinalReportInput } from "@/ai/flows/g
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 
 
 const eventSchema = z.object({
@@ -262,6 +263,22 @@ export default function InstallationDetailPage() {
   }
   
   const Icon = installation.installationType === 'residencial' ? Home : Building;
+  const getStatusProps = (status: Installation["status"]) => {
+    switch (status) {
+      case "Concluído":
+        return { icon: <CheckCircle className="h-4 w-4" />, className: "bg-green-600 hover:bg-green-700", label: "Concluído" };
+      case "Cancelado":
+        return { icon: <XCircle className="h-4 w-4" />, className: "bg-red-600 hover:bg-red-700", label: "Cancelado" };
+       case "Em Andamento":
+        return { icon: <Bolt className="h-4 w-4" />, className: "bg-yellow-500 hover:bg-yellow-600", label: "Em Andamento" };
+      case "Agendado":
+         return { icon: <Clock className="h-4 w-4" />, className: "bg-blue-500 hover:bg-blue-600", label: "Agendado" };
+      case "Pendente":
+      default:
+        return { icon: <FileText className="h-4 w-4" />, className: "bg-gray-500 hover:bg-gray-600", label: "Pendente" };
+    }
+  };
+  const statusProps = getStatusProps(installation.status);
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -417,6 +434,18 @@ export default function InstallationDetailPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Status da Instalação</CardTitle>
+                </CardHeader>
+                <CardContent>
+                     <Badge variant="default" className={cn("text-base", statusProps.className)}>
+                        {statusProps.icon}
+                        <span className="ml-2">{statusProps.label}</span>
+                     </Badge>
+                </CardContent>
+            </Card>
             
             <Card>
                 <CardHeader>
@@ -491,58 +520,85 @@ export default function InstallationDetailPage() {
                     <CardTitle>Relatório do Instalador</CardTitle>
                      <CardDescription>Dados e mídias da instalação.</CardDescription>
                 </CardHeader>
-                <CardContent>
-                    {!installation.reportSubmitted ? (
-                        <p className="text-sm text-muted-foreground">O relatório ainda não foi enviado pelo instalador.</p>
+                 <CardContent>
+                    {!installation.reportSubmitted || !installerReport ? (
+                      <p className="text-sm text-muted-foreground p-4 text-center">
+                        O relatório ainda não foi enviado pelo instalador.
+                      </p>
                     ) : (
-                        <Tabs defaultValue="report">
-                           <TabsContent value="report" className="mt-0">
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <Button className="w-full"><FileCheck2 className="mr-2"/> Ver Relatório Completo</Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="max-w-4xl">
-                                        <DialogHeader>
-                                            <DialogTitle>Relatório de Instalação - {installerReport?.clientName}</DialogTitle>
-                                            <DialogDescription>Detalhes completos preenchidos pelo instalador.</DialogDescription>
-                                        </DialogHeader>
-                                        <ScrollArea className="max-h-[70vh] pr-6">
-                                            {installerReport && (
-                                                <div className="space-y-6 py-4 text-sm">
-                                                    <div>
-                                                        <h3 className="font-semibold text-lg mb-2 flex items-center gap-2"><Camera /> Documentação Fotográfica</h3>
-                                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                                            {installerReport.photo_uploads && installerReport.photo_uploads.map((photo: any, index: number) => (
-                                                                photo.dataUrl && (
-                                                                    <div key={index} className="space-y-1">
-                                                                        <a href={photo.dataUrl} target="_blank" rel="noopener noreferrer">
-                                                                            <img src={photo.dataUrl} alt={photo.annotation || `Foto ${index + 1}`} className="rounded-md object-cover aspect-square hover:opacity-80 transition-opacity" />
-                                                                        </a>
-                                                                        <p className="text-xs text-muted-foreground truncate">{photo.annotation || `Foto ${index + 1}`}</p>
-                                                                    </div>
-                                                                )
-                                                            ))}
+                      <Tabs defaultValue="media">
+                        <TabsList className="grid w-full grid-cols-2">
+                          <TabsTrigger value="media">Mídias</TabsTrigger>
+                          <TabsTrigger value="data">Dados do Formulário</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="media">
+                            <ScrollArea className="max-h-[60vh] pr-2">
+                                <div className="space-y-6 py-4 text-sm">
+                                    <div>
+                                        <h3 className="font-semibold text-base mb-3 flex items-center gap-2"><Camera /> Fotos</h3>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {installerReport.photo_uploads && installerReport.photo_uploads.filter((p: any) => p.dataUrl).map((photo: any, index: number) => (
+                                                <div key={index} className="space-y-1 group">
+                                                    <a href={photo.dataUrl} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-md">
+                                                        <img src={photo.dataUrl} alt={photo.annotation || `Foto ${index + 1}`} className="object-cover aspect-square transition-transform duration-300 group-hover:scale-105" />
+                                                    </a>
+                                                    <p className="text-xs text-muted-foreground truncate">{photo.annotation || `Foto ${index + 1}`}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <Separator/>
+                                    <div>
+                                        <h3 className="font-semibold text-base mb-3 flex items-center gap-2"><Video /> Vídeo</h3>
+                                        {installerReport.installationVideoDataUrl ? (
+                                            <video src={installerReport.installationVideoDataUrl} controls className="w-full rounded-md" />
+                                        ) : (
+                                            <p className="text-muted-foreground text-center">Nenhum vídeo enviado.</p>
+                                        )}
+                                    </div>
+                                </div>
+                            </ScrollArea>
+                        </TabsContent>
+                        <TabsContent value="data">
+                            <ScrollArea className="max-h-[60vh] pr-2">
+                                <div className="space-y-4 py-4 text-sm">
+                                    {Object.entries(installerReport).map(([key, value]) => {
+                                        if (key === 'photo_uploads' || key === 'installationVideoDataUrl' || key === 'installationVideo') return null;
+                                        if (typeof value === 'object' && value !== null) {
+                                            if (Array.isArray(value)) { // Handle strings array
+                                                return (
+                                                    <div key={key}>
+                                                        <h4 className="font-semibold capitalize">{key.replace(/([A-Z])/g, ' $1')}</h4>
+                                                        <div className="grid grid-cols-2 gap-2 mt-1">
+                                                        {value.map((item, index) => (
+                                                          item.voltage || item.plates ? (
+                                                            <div key={index} className="p-2 border rounded-md bg-muted/50">
+                                                                <p><b>String {index + 1}:</b></p>
+                                                                <p>Tensão: {item.voltage || 'N/A'} V</p>
+                                                                <p>Placas: {item.plates || 'N/A'}</p>
+                                                            </div>
+                                                          ) : null
+                                                        ))}
                                                         </div>
                                                     </div>
-                                                    <Separator />
-                                                    <div>
-                                                        <h3 className="font-semibold text-lg mb-2 flex items-center gap-2"><Video /> Vídeo da Instalação</h3>
-                                                        {installerReport.installationVideoDataUrl ? (
-                                                            <video src={installerReport.installationVideoDataUrl} controls className="w-full rounded-md" />
-                                                        ) : (
-                                                            <p>Nenhum vídeo enviado.</p>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </ScrollArea>
-                                    </DialogContent>
-                                </Dialog>
-                            </TabsContent>
-                        </Tabs>
+                                                )
+                                            }
+                                            return null; // Don't render other objects for now
+                                        }
+                                        return (
+                                            <div key={key} className="flex justify-between border-b pb-1">
+                                                <span className="font-medium text-muted-foreground capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
+                                                <span className="text-right">{String(value) || 'N/A'}</span>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </ScrollArea>
+                        </TabsContent>
+                      </Tabs>
                     )}
-                </CardContent>
-                 <CardFooter className="flex flex-col items-stretch space-y-4">
+                  </CardContent>
+                 <CardFooter className="flex flex-col items-stretch space-y-4 pt-4">
                      <Separator />
                      <h3 className="font-semibold text-lg flex items-center gap-2 pt-2"><Sparkles className="text-primary"/>Gerador de Relatório Final</h3>
                      <Form {...finalReportForm}>
@@ -590,5 +646,3 @@ export default function InstallationDetailPage() {
     </div>
   );
 }
-
-    
