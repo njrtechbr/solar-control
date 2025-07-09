@@ -5,11 +5,12 @@ import { useMemo } from 'react';
 import { SortableContext, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-import type { Installation, InstallationStatus } from '../page';
+import type { Installation } from '../page';
 import { KanbanCard } from './kanban-card';
+import { KanbanColumnType } from './kanban-board';
 
 type KanbanColumnProps = {
-  column: { id: InstallationStatus; title: string };
+  column: KanbanColumnType;
   installations: Installation[];
 };
 

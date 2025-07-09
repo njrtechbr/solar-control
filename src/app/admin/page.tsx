@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { User, SunMedium, Home, Building, Bolt, PlusCircle } from "lucide-react";
+import { User, SunMedium, Home, Building, Bolt, PlusCircle, LayoutDashboard, ListChecks } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -29,9 +29,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { KanbanBoard } from "./_components/kanban-board";
+import { KanbanBoard, KanbanColumnType } from "./_components/kanban-board";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 // Extended Installation type for CRM features
 const installationSchema = z.object({
@@ -72,6 +74,23 @@ const installationSchema = z.object({
 export type Installation = z.infer<typeof installationSchema>;
 
 export type InstallationStatus = Installation['status'];
+export type ProjectStatus = Installation['projectStatus'];
+
+const INSTALLATION_STATUS_COLUMNS: KanbanColumnType[] = [
+  { id: 'Pendente', title: 'Pendente' },
+  { id: 'Agendado', title: 'Agendado' },
+  { id: 'Em Andamento', title: 'Em Andamento' },
+  { id: 'Concluído', title: 'Concluído' },
+  { id: 'Cancelado', title: 'Cancelado' },
+];
+
+const PROCESS_STATUS_COLUMNS: KanbanColumnType[] = [
+  { id: 'Não Enviado', title: 'Não Enviado' },
+  { id: 'Enviado para Análise', title: 'Em Análise' },
+  { id: 'Aprovado', title: 'Aprovado' },
+  { id: 'Reprovado', title: 'Reprovado' },
+];
+
 
 const initialInstallations: Installation[] = [
     { 
@@ -140,7 +159,7 @@ const initialInstallations: Installation[] = [
       utilityCompany: "CPFL",
       protocolNumber: "555555555",
       protocolDate: new Date(Date.now() - 86400000 * 12).toISOString(),
-      projectStatus: "Não Enviado",
+      projectStatus: "Reprovado",
       homologationStatus: "Pendente",
       status: "Cancelado", 
       reportSubmitted: false, 
@@ -161,6 +180,24 @@ const initialInstallations: Installation[] = [
       protocolNumber: "",
       protocolDate: "",
       projectStatus: "Não Enviado",
+      homologationStatus: "Pendente",
+      status: "Pendente", 
+      reportSubmitted: false, 
+      events: [], 
+      documents: [] 
+    },
+    { 
+      id: 5, 
+      clientName: "Oficina Mecânica Veloz", 
+      address: "Rua E, 202", 
+      city: "Indaiatuba", 
+      state: "SP", 
+      zipCode: "13330-005", 
+      installationType: "comercial", 
+      utilityCompany: "CPFL",
+      protocolNumber: "333222111",
+      protocolDate: new Date(Date.now() - 86400000 * 5).toISOString(),
+      projectStatus: "Enviado para Análise",
       homologationStatus: "Pendente",
       status: "Pendente", 
       reportSubmitted: false, 
@@ -270,44 +307,50 @@ export default function AdminPage() {
     setCreateDialogOpen(false);
   }
   
-  const handleStatusChange = (installationId: number, newStatus: InstallationStatus) => {
+  const handleItemMove = (installationId: number, newStatus: string, oldStatus: string) => {
     const allInstallations = [...installations];
     const installationIndex = allInstallations.findIndex(inst => inst.id === installationId);
     if (installationIndex === -1) return;
 
     const installation = allInstallations[installationIndex];
-    const oldStatus = installation.status;
+    
+    // Determine which status to update based on the columns
+    const isProjectStatusBoard = PROCESS_STATUS_COLUMNS.some(c => c.id === newStatus || c.id === oldStatus);
+    
+    let eventDescription = '';
+    
+    if (isProjectStatusBoard) {
+        if (installation.projectStatus === newStatus) return;
+        installation.projectStatus = newStatus as ProjectStatus;
+        eventDescription = `Status do projeto alterado de "${oldStatus}" para "${newStatus}".`;
+    } else {
+        if (installation.status === newStatus) return;
+        installation.status = newStatus as InstallationStatus;
+        eventDescription = `Status da instalação alterado de "${oldStatus}" para "${newStatus}".`;
 
-    if(oldStatus === newStatus) return;
-
-    // Update status
-    installation.status = newStatus;
+        if (newStatus === "Agendado" && !installation.scheduledDate) {
+            const scheduledDate = new Date(Date.now() + 86400000 * 7); // Schedule for 7 days from now as a default
+            installation.scheduledDate = scheduledDate.toISOString();
+            const scheduleEvent = {
+                id: new Date().toISOString() + "_schedule",
+                date: new Date().toISOString(),
+                type: 'Agendamento',
+                description: `Instalação agendada para ${format(scheduledDate, "dd 'de' MMMM, yyyy 'às' HH:mm", { locale: ptBR })}.`,
+                attachments: [],
+            };
+            installation.events.push(scheduleEvent);
+        }
+    }
 
     // Add event
     const newEvent = {
         id: new Date().toISOString(),
         date: new Date().toISOString(),
         type: 'Nota',
-        description: `Status alterado de "${oldStatus}" para "${newStatus}".`,
+        description: eventDescription,
         attachments: [],
     };
     installation.events = [...(installation.events || []), newEvent].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    
-    // If moved to scheduled, check if there is a date
-    if (newStatus === "Agendado" && !installation.scheduledDate) {
-        const scheduledDate = new Date(Date.now() + 86400000 * 7); // Schedule for 7 days from now as a default
-        installation.scheduledDate = scheduledDate.toISOString();
-
-         const scheduleEvent = {
-            id: new Date().toISOString() + "_schedule",
-            date: new Date().toISOString(),
-            type: 'Agendamento',
-            description: `Instalação agendada para ${format(scheduledDate, "dd 'de' MMMM, yyyy 'às' HH:mm", { locale: ptBR })}.`,
-            attachments: [],
-        };
-        installation.events.push(scheduleEvent);
-        installation.events.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    }
 
     allInstallations[installationIndex] = installation;
     saveInstallations(allInstallations);
@@ -413,13 +456,31 @@ export default function AdminPage() {
           </Dialog>
         </header>
 
-        <main className="flex-1 overflow-x-auto">
-          <div className="p-4 md:p-6 min-w-[1200px]">
-             <KanbanBoard 
-                installations={installations} 
-                onStatusChange={handleStatusChange} 
-            />
-          </div>
+        <main className="flex-1 overflow-hidden p-4 md:p-6">
+            <Tabs defaultValue="installation-status">
+                <TabsList className="mb-4">
+                    <TabsTrigger value="installation-status"><LayoutDashboard className="mr-2" />Status da Instalação</TabsTrigger>
+                    <TabsTrigger value="process-status"><ListChecks className="mr-2" />Status do Processo</TabsTrigger>
+                </TabsList>
+                <TabsContent value="installation-status" className="h-full overflow-x-auto">
+                     <div className="min-w-[1200px] h-full">
+                        <KanbanBoard 
+                            installations={installations} 
+                            columns={INSTALLATION_STATUS_COLUMNS}
+                            onItemMove={handleItemMove} 
+                        />
+                    </div>
+                </TabsContent>
+                <TabsContent value="process-status" className="h-full overflow-x-auto">
+                    <div className="min-w-[900px] h-full">
+                        <KanbanBoard 
+                            installations={installations} 
+                            columns={PROCESS_STATUS_COLUMNS}
+                            onItemMove={handleItemMove} 
+                        />
+                    </div>
+                </TabsContent>
+            </Tabs>
         </main>
       </div>
     </>

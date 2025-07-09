@@ -15,29 +15,27 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, arrayMove } from '@dnd-kit/sortable';
 import { createPortal } from 'react-dom';
-import Link from 'next/link';
 
-import { Installation, InstallationStatus } from '../page';
+import { Installation, InstallationStatus, ProjectStatus } from '../page';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { KanbanColumn } from './kanban-column';
 import { KanbanCard } from './kanban-card';
 import { Badge } from '@/components/ui/badge';
 import { FileCheck2, Home, Building } from 'lucide-react';
 
-type KanbanBoardProps = {
-  installations: Installation[];
-  onStatusChange: (installationId: number, newStatus: InstallationStatus) => void;
+export type KanbanColumnType = {
+  id: string;
+  title: string;
 };
 
-const KANBAN_COLUMNS: { id: InstallationStatus; title: string }[] = [
-  { id: 'Pendente', title: 'Pendente' },
-  { id: 'Agendado', title: 'Agendado' },
-  { id: 'Em Andamento', title: 'Em Andamento' },
-  { id: 'Concluído', title: 'Concluído' },
-  { id: 'Cancelado', title: 'Cancelado' },
-];
+type KanbanBoardProps = {
+  installations: Installation[];
+  columns: KanbanColumnType[];
+  onItemMove: (installationId: number, newStatus: string, oldStatus: string) => void;
+};
 
-export function KanbanBoard({ installations, onStatusChange }: KanbanBoardProps) {
+
+export function KanbanBoard({ installations, columns, onItemMove }: KanbanBoardProps) {
   const [activeInstallation, setActiveInstallation] = useState<Installation | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -46,7 +44,7 @@ export function KanbanBoard({ installations, onStatusChange }: KanbanBoardProps)
   }, []);
 
 
-  const columnsId = useMemo(() => KANBAN_COLUMNS.map((col) => col.id), []);
+  const columnsId = useMemo(() => columns.map((col) => col.id), [columns]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -55,6 +53,13 @@ export function KanbanBoard({ installations, onStatusChange }: KanbanBoardProps)
       },
     })
   );
+
+  function getStatusForInstallation(inst: Installation): string {
+    // This is a bit of a hack, but we need to determine which board we are on.
+    // The columns prop tells us.
+    const isProjectStatusBoard = columns.some(c => c.id === "Não Enviado");
+    return isProjectStatusBoard ? inst.projectStatus : inst.status;
+  }
 
   function onDragStart(event: DragStartEvent) {
     if (event.active.data.current?.type === 'Installation') {
@@ -73,15 +78,22 @@ export function KanbanBoard({ installations, onStatusChange }: KanbanBoardProps)
     if (!isActiveAnInstallation) return;
 
     const installationId = active.id as number;
-    const newStatus = over.id as InstallationStatus;
+    const installation = active.data.current?.installation as Installation;
+    const oldStatus = getStatusForInstallation(installation);
     
-    // This is a simplified check. In a real scenario, you'd check if over.id is a column.
     // If over.data.current is a card, we infer the column from it.
-    const finalStatus = over.data.current?.type === 'Installation' 
-        ? over.data.current.installation.status 
-        : newStatus;
-
-    onStatusChange(installationId, finalStatus);
+    let newStatus: string;
+    if (over.data.current?.type === 'Installation') {
+      const overInstallation = over.data.current.installation as Installation;
+      newStatus = getStatusForInstallation(overInstallation);
+    } else {
+      // It's a column
+      newStatus = over.id as string;
+    }
+    
+    if (newStatus !== oldStatus) {
+      onItemMove(installationId, newStatus, oldStatus);
+    }
   }
 
    function onDragOver(event: DragOverEvent) {
@@ -90,24 +102,16 @@ export function KanbanBoard({ installations, onStatusChange }: KanbanBoardProps)
     if (active.id === over.id) return;
 
     const isActiveAnInstallation = active.data.current?.type === 'Installation';
-    const isOverAnInstallation = over.data.current?.type === 'Installation';
-
-    if (!isActiveAnInstallation) return;
-
-    // Dropping an Installation over another Installation
-    if (isActiveAnInstallation && isOverAnInstallation) {
-      // Logic to reorder items within the same column can go here if needed.
-      // For now, we only care about changing status (column).
-    }
-
     const isOverAColumn = over.data.current?.type === 'Column';
 
     // Dropping an Installation over a column
     if (isActiveAnInstallation && isOverAColumn) {
         const installation = active.data.current?.installation as Installation;
-        const columnId = over.id as InstallationStatus;
-        if (installation.status !== columnId) {
-            onStatusChange(installation.id!, columnId);
+        const oldStatus = getStatusForInstallation(installation);
+        const newStatus = over.id as string;
+        
+        if (newStatus !== oldStatus) {
+           onItemMove(installation.id!, newStatus, oldStatus);
         }
     }
   }
@@ -122,11 +126,11 @@ export function KanbanBoard({ installations, onStatusChange }: KanbanBoardProps)
     >
       <div className="grid grid-cols-5 gap-4">
         <SortableContext items={columnsId}>
-          {KANBAN_COLUMNS.map((col) => (
+          {columns.map((col) => (
             <KanbanColumn
               key={col.id}
               column={col}
-              installations={installations.filter((inst) => inst.status === col.id)}
+              installations={installations.filter((inst) => getStatusForInstallation(inst) === col.id)}
             />
           ))}
         </SortableContext>
