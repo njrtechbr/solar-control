@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Camera, Video, Bolt, Clock, CheckCircle, XCircle, FileText } from "lucide-react";
+import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Camera, Video, Bolt, Clock, CheckCircle, XCircle, FileText, Activity, FileJson } from "lucide-react";
 
 import { type Installation } from "@/app/admin/page";
 import { Button } from "@/components/ui/button";
@@ -294,125 +294,269 @@ export default function InstallationDetailPage() {
 
       <main className="flex-1 p-4 md:p-6 grid gap-6 md:grid-cols-3 lg:grid-cols-4">
         <div className="md:col-span-2 lg:col-span-3 space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Histórico de Eventos</CardTitle>
-                    <CardDescription>Acompanhe tudo que acontece nesta instalação.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                   <div className="space-y-8 relative pl-6 before:absolute before:inset-y-0 before:w-px before:bg-border before:left-0 before:ml-3">
-                       {(!installation.events || installation.events.length === 0) && (
-                         <div className="text-center text-muted-foreground py-8">
-                            <MessageSquare className="mx-auto h-12 w-12" />
-                            <p className="mt-4">Nenhum evento registrado ainda.</p>
-                            <p className="text-sm">Use o botão abaixo para adicionar o primeiro evento.</p>
-                         </div>
-                       )}
-                       {[...(installation.events || [])].reverse().map(event => {
-                           const EventIcon = EVENT_TYPES.find(e => e.value === event.type)?.icon || MessageSquare;
-                           return (
-                               <div key={event.id} className="relative">
-                                    <div className="absolute -left-6 top-0 h-6 w-6 bg-background flex items-center justify-center rounded-full border">
-                                        <EventIcon className="h-4 w-4 text-muted-foreground" />
-                                    </div>
-                                    <div className="pl-6">
-                                      <p className="text-sm text-muted-foreground">{format(new Date(event.date), "dd 'de' MMMM, yyyy 'às' HH:mm", { locale: ptBR })}</p>
-                                      <h4 className="font-semibold">{event.type}</h4>
-                                      <p className="text-muted-foreground text-sm whitespace-pre-wrap">{event.description}</p>
-                                      {event.attachments && event.attachments.length > 0 && (
-                                          <div className="mt-2 space-y-1">
-                                              {event.attachments.map((file, idx) => (
-                                                  <a key={idx} href={file.dataUrl} download={file.name} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-2 max-w-xs truncate">
-                                                      <Paperclip className="h-3 w-3 flex-shrink-0" /> <span className="truncate">{file.name}</span>
-                                                  </a>
-                                              ))}
-                                          </div>
-                                      )}
-                                    </div>
-                               </div>
-                           )
-                       })}
-                   </div>
-                </CardContent>
-                 <CardFooter>
-                    <Dialog open={isEventDialogOpen} onOpenChange={setEventDialogOpen}>
-                        <DialogTrigger asChild>
-                            <Button>
-                                <Plus className="mr-2 h-4 w-4" /> Adicionar Evento
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Adicionar Novo Evento</DialogTitle>
-                                <DialogDescription>Registre uma nova ocorrência para esta instalação.</DialogDescription>
-                            </DialogHeader>
-                            <Form {...eventForm}>
-                                <form id="event-form" onSubmit={eventForm.handleSubmit(handleAddEvent)} className="space-y-4 py-4">
-                                     <FormField control={eventForm.control} name="type" render={({ field }) => (
+             <Tabs defaultValue="overview" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="overview"><Activity className="mr-2 h-4 w-4"/>Visão Geral</TabsTrigger>
+                    <TabsTrigger value="report"><FileJson className="mr-2 h-4 w-4"/>Relatório do Instalador</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="overview">
+                     <Card className="mt-6">
+                        <CardHeader>
+                            <CardTitle>Histórico de Eventos</CardTitle>
+                            <CardDescription>Acompanhe tudo que acontece nesta instalação.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                           <ScrollArea className="h-[40vh]">
+                           <div className="space-y-8 relative pl-6 before:absolute before:inset-y-0 before:w-px before:bg-border before:left-0 before:ml-3">
+                               {(!installation.events || installation.events.length === 0) && (
+                                 <div className="text-center text-muted-foreground py-8">
+                                    <MessageSquare className="mx-auto h-12 w-12" />
+                                    <p className="mt-4">Nenhum evento registrado ainda.</p>
+                                    <p className="text-sm">Use o botão abaixo para adicionar o primeiro evento.</p>
+                                 </div>
+                               )}
+                               {[...(installation.events || [])].reverse().map(event => {
+                                   const EventIcon = EVENT_TYPES.find(e => e.value === event.type)?.icon || MessageSquare;
+                                   return (
+                                       <div key={event.id} className="relative">
+                                            <div className="absolute -left-6 top-0 h-6 w-6 bg-background flex items-center justify-center rounded-full border">
+                                                <EventIcon className="h-4 w-4 text-muted-foreground" />
+                                            </div>
+                                            <div className="pl-6">
+                                              <p className="text-sm text-muted-foreground">{format(new Date(event.date), "dd 'de' MMMM, yyyy 'às' HH:mm", { locale: ptBR })}</p>
+                                              <h4 className="font-semibold">{event.type}</h4>
+                                              <p className="text-muted-foreground text-sm whitespace-pre-wrap">{event.description}</p>
+                                              {event.attachments && event.attachments.length > 0 && (
+                                                  <div className="mt-2 space-y-1">
+                                                      {event.attachments.map((file, idx) => (
+                                                          <a key={idx} href={file.dataUrl} download={file.name} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-2 max-w-xs truncate">
+                                                              <Paperclip className="h-3 w-3 flex-shrink-0" /> <span className="truncate">{file.name}</span>
+                                                          </a>
+                                                      ))}
+                                                  </div>
+                                              )}
+                                            </div>
+                                       </div>
+                                   )
+                               })}
+                           </div>
+                           </ScrollArea>
+                        </CardContent>
+                         <CardFooter>
+                            <Dialog open={isEventDialogOpen} onOpenChange={setEventDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button>
+                                        <Plus className="mr-2 h-4 w-4" /> Adicionar Evento
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Adicionar Novo Evento</DialogTitle>
+                                        <DialogDescription>Registre uma nova ocorrência para esta instalação.</DialogDescription>
+                                    </DialogHeader>
+                                    <Form {...eventForm}>
+                                        <form id="event-form" onSubmit={eventForm.handleSubmit(handleAddEvent)} className="space-y-4 py-4">
+                                             <FormField control={eventForm.control} name="type" render={({ field }) => (
+                                                <FormItem>
+                                                  <FormLabel>Tipo de Evento</FormLabel>
+                                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormControl>
+                                                      <SelectTrigger>
+                                                        <SelectValue placeholder="Selecione um tipo..." />
+                                                      </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                      {EVENT_TYPES.map(et => (
+                                                        <SelectItem key={et.value} value={et.value}>{et.label}</SelectItem>
+                                                      ))}
+                                                    </SelectContent>
+                                                  </Select>
+                                                  <FormMessage />
+                                                </FormItem>
+                                              )}/>
+                                            <FormField control={eventForm.control} name="date" render={({ field }) => (
+                                                <FormItem className="flex flex-col">
+                                                  <FormLabel>Data do Evento</FormLabel>
+                                                  <Popover>
+                                                    <PopoverTrigger asChild>
+                                                      <FormControl>
+                                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                          {field.value ? format(field.value, 'PPP', { locale: ptBR }) : <span>Escolha uma data</span>}
+                                                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                        </Button>
+                                                      </FormControl>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-auto p-0" align="start">
+                                                      <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date()} initialFocus />
+                                                    </PopoverContent>
+                                                  </Popover>
+                                                  <FormMessage />
+                                                </FormItem>
+                                              )}/>
+                                            <FormField control={eventForm.control} name="description" render={({ field }) => (
+                                                <FormItem>
+                                                  <FormLabel>Descrição</FormLabel>
+                                                  <FormControl>
+                                                    <Textarea placeholder="Descreva o que aconteceu..." {...field} />
+                                                  </FormControl>
+                                                  <FormMessage />
+                                                </FormItem>
+                                              )}/>
+                                            <FormField control={eventForm.control} name="attachments" render={({ field: { onChange, ...field }}) => (
+                                                <FormItem>
+                                                    <FormLabel>Anexos</FormLabel>
+                                                    <FormControl>
+                                                        <Input type="file" multiple onChange={(e) => onChange(e.target.files)} {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}/>
+                                        </form>
+                                    </Form>
+                                    <DialogFooter>
+                                        <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                                        <Button type="submit" form="event-form">Salvar Evento</Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                        </CardFooter>
+                    </Card>
+                    <Card className="mt-6">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><Sparkles className="text-primary"/>Gerador de Relatório Final</CardTitle>
+                            <CardDescription>Use IA para consolidar o relatório do instalador em um documento final.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                             <Form {...finalReportForm}>
+                                <form onSubmit={finalReportForm.handleSubmit(handleGenerateFinalReport)} className="space-y-4">
+                                    <FormField control={finalReportForm.control} name="protocolNumber" render={({ field }) => (
                                         <FormItem>
-                                          <FormLabel>Tipo de Evento</FormLabel>
-                                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormLabel>Número de Protocolo</FormLabel>
                                             <FormControl>
-                                              <SelectTrigger>
-                                                <SelectValue placeholder="Selecione um tipo..." />
-                                              </SelectTrigger>
+                                                <Input placeholder="Insira o número do protocolo" {...field} disabled={!installation.reportSubmitted}/>
                                             </FormControl>
-                                            <SelectContent>
-                                              {EVENT_TYPES.map(et => (
-                                                <SelectItem key={et.value} value={et.value}>{et.label}</SelectItem>
-                                              ))}
-                                            </SelectContent>
-                                          </Select>
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}/>
-                                    <FormField control={eventForm.control} name="date" render={({ field }) => (
-                                        <FormItem className="flex flex-col">
-                                          <FormLabel>Data do Evento</FormLabel>
-                                          <Popover>
-                                            <PopoverTrigger asChild>
-                                              <FormControl>
-                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                  {field.value ? format(field.value, 'PPP', { locale: ptBR }) : <span>Escolha uma data</span>}
-                                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                </Button>
-                                              </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                              <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date()} initialFocus />
-                                            </PopoverContent>
-                                          </Popover>
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}/>
-                                    <FormField control={eventForm.control} name="description" render={({ field }) => (
-                                        <FormItem>
-                                          <FormLabel>Descrição</FormLabel>
-                                          <FormControl>
-                                            <Textarea placeholder="Descreva o que aconteceu..." {...field} />
-                                          </FormControl>
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}/>
-                                    <FormField control={eventForm.control} name="attachments" render={({ field: { onChange, ...field }}) => (
-                                        <FormItem>
-                                            <FormLabel>Anexos</FormLabel>
-                                            <FormControl>
-                                                <Input type="file" multiple onChange={(e) => onChange(e.target.files)} {...field} />
-                                            </FormControl>
-                                            <FormMessage />
+                                            <FormMessage/>
                                         </FormItem>
                                     )}/>
+                                    <Button type="submit" disabled={isGenerating || !installation.reportSubmitted} className="w-full">
+                                        {isGenerating ? "Gerando..." : "Gerar Relatório com IA"}
+                                    </Button>
                                 </form>
                             </Form>
-                            <DialogFooter>
-                                <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-                                <Button type="submit" form="event-form">Salvar Evento</Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
-                </CardFooter>
-            </Card>
+                             {isGenerating && (
+                                <div className="space-y-2 pt-4">
+                                    <Skeleton className="h-4 w-1/4" />
+                                    <Skeleton className="h-4 w-full" />
+                                    <Skeleton className="h-4 w-full" />
+                                    <Skeleton className="h-4 w-3/4" />
+                                </div>
+                            )}
+                            {generatedFinalReport && (
+                                <div className="space-y-2 pt-4">
+                                    <div className="flex justify-between items-center">
+                                       <h4 className="font-semibold">Relatório Final Gerado</h4>
+                                       <Button variant="ghost" size="sm" onClick={() => copyToClipboard(generatedFinalReport, "Relatório copiado!")}>
+                                            <Copy className="mr-2 h-4 w-4"/>
+                                            Copiar
+                                       </Button>
+                                    </div>
+                                    <ScrollArea className="h-48">
+                                       <p className="p-4 border rounded-md bg-muted/50 whitespace-pre-wrap">{generatedFinalReport}</p>
+                                    </ScrollArea>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                <TabsContent value="report">
+                     <Card className="mt-6">
+                        <CardHeader>
+                           <CardTitle>Relatório do Instalador</CardTitle>
+                           <CardDescription>Dados e mídias da instalação enviados pelo técnico.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                           {!installation.reportSubmitted || !installerReport ? (
+                             <div className="text-center text-muted-foreground py-8">
+                                <FileCheck2 className="mx-auto h-12 w-12" />
+                                <p className="mt-4">O relatório ainda não foi enviado pelo instalador.</p>
+                             </div>
+                           ) : (
+                             <Tabs defaultValue="media" className="w-full">
+                               <TabsList className="grid w-full grid-cols-2">
+                                 <TabsTrigger value="media">Mídias</TabsTrigger>
+                                 <TabsTrigger value="data">Dados do Formulário</TabsTrigger>
+                               </TabsList>
+                               <TabsContent value="media">
+                                   <ScrollArea className="h-[60vh] pr-2">
+                                       <div className="space-y-6 py-4 text-sm">
+                                           <div>
+                                               <h3 className="font-semibold text-base mb-3 flex items-center gap-2"><Camera /> Fotos</h3>
+                                               <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                                                   {installerReport.photo_uploads && installerReport.photo_uploads.filter((p: any) => p.dataUrl).map((photo: any, index: number) => (
+                                                       <div key={index} className="space-y-1 group">
+                                                           <a href={photo.dataUrl} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-md">
+                                                               <img src={photo.dataUrl} alt={photo.annotation || `Foto ${index + 1}`} className="object-cover aspect-square transition-transform duration-300 group-hover:scale-105" />
+                                                           </a>
+                                                           <p className="text-xs text-muted-foreground truncate">{photo.annotation || `Foto ${index + 1}`}</p>
+                                                       </div>
+                                                   ))}
+                                               </div>
+                                           </div>
+                                           <Separator/>
+                                           <div>
+                                               <h3 className="font-semibold text-base mb-3 flex items-center gap-2"><Video /> Vídeo</h3>
+                                               {installerReport.installationVideoDataUrl ? (
+                                                   <video src={installerReport.installationVideoDataUrl} controls className="w-full rounded-md" />
+                                               ) : (
+                                                   <p className="text-muted-foreground text-center">Nenhum vídeo enviado.</p>
+                                               )}
+                                           </div>
+                                       </div>
+                                   </ScrollArea>
+                               </TabsContent>
+                               <TabsContent value="data">
+                                   <ScrollArea className="h-[60vh] pr-2">
+                                       <div className="space-y-4 py-4 text-sm">
+                                           {Object.entries(installerReport).map(([key, value]) => {
+                                               if (key === 'photo_uploads' || key === 'installationVideoDataUrl' || key === 'installationVideo') return null;
+                                               if (typeof value === 'object' && value !== null) {
+                                                   if (Array.isArray(value)) { // Handle strings array
+                                                       return (
+                                                           <div key={key}>
+                                                               <h4 className="font-semibold capitalize">{key.replace(/([A-Z])/g, ' $1')}</h4>
+                                                               <div className="grid grid-cols-2 gap-2 mt-1">
+                                                               {value.map((item, index) => (
+                                                                 item.voltage || item.plates ? (
+                                                                   <div key={index} className="p-2 border rounded-md bg-muted/50">
+                                                                       <p><b>String {index + 1}:</b></p>
+                                                                       <p>Tensão: {item.voltage || 'N/A'} V</p>
+                                                                       <p>Placas: {item.plates || 'N/A'}</p>
+                                                                   </div>
+                                                                 ) : null
+                                                               ))}
+                                                               </div>
+                                                           </div>
+                                                       )
+                                                   }
+                                                   return null; // Don't render other objects for now
+                                               }
+                                               return (
+                                                   <div key={key} className="flex justify-between border-b pb-1">
+                                                       <span className="font-medium text-muted-foreground capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
+                                                       <span className="text-right">{String(value) || 'N/A'}</span>
+                                                   </div>
+                                               )
+                                           })}
+                                       </div>
+                                   </ScrollArea>
+                               </TabsContent>
+                             </Tabs>
+                           )}
+                         </CardContent>
+                    </Card>
+                </TabsContent>
+             </Tabs>
         </div>
         <div className="lg:col-span-1 space-y-6">
             <Card>
@@ -514,135 +658,10 @@ export default function InstallationDetailPage() {
                     </Dialog>
                 </CardFooter>
             </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Relatório do Instalador</CardTitle>
-                     <CardDescription>Dados e mídias da instalação.</CardDescription>
-                </CardHeader>
-                 <CardContent>
-                    {!installation.reportSubmitted || !installerReport ? (
-                      <p className="text-sm text-muted-foreground p-4 text-center">
-                        O relatório ainda não foi enviado pelo instalador.
-                      </p>
-                    ) : (
-                      <Tabs defaultValue="media">
-                        <TabsList className="grid w-full grid-cols-2">
-                          <TabsTrigger value="media">Mídias</TabsTrigger>
-                          <TabsTrigger value="data">Dados do Formulário</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="media">
-                            <ScrollArea className="max-h-[60vh] pr-2">
-                                <div className="space-y-6 py-4 text-sm">
-                                    <div>
-                                        <h3 className="font-semibold text-base mb-3 flex items-center gap-2"><Camera /> Fotos</h3>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            {installerReport.photo_uploads && installerReport.photo_uploads.filter((p: any) => p.dataUrl).map((photo: any, index: number) => (
-                                                <div key={index} className="space-y-1 group">
-                                                    <a href={photo.dataUrl} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-md">
-                                                        <img src={photo.dataUrl} alt={photo.annotation || `Foto ${index + 1}`} className="object-cover aspect-square transition-transform duration-300 group-hover:scale-105" />
-                                                    </a>
-                                                    <p className="text-xs text-muted-foreground truncate">{photo.annotation || `Foto ${index + 1}`}</p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <Separator/>
-                                    <div>
-                                        <h3 className="font-semibold text-base mb-3 flex items-center gap-2"><Video /> Vídeo</h3>
-                                        {installerReport.installationVideoDataUrl ? (
-                                            <video src={installerReport.installationVideoDataUrl} controls className="w-full rounded-md" />
-                                        ) : (
-                                            <p className="text-muted-foreground text-center">Nenhum vídeo enviado.</p>
-                                        )}
-                                    </div>
-                                </div>
-                            </ScrollArea>
-                        </TabsContent>
-                        <TabsContent value="data">
-                            <ScrollArea className="max-h-[60vh] pr-2">
-                                <div className="space-y-4 py-4 text-sm">
-                                    {Object.entries(installerReport).map(([key, value]) => {
-                                        if (key === 'photo_uploads' || key === 'installationVideoDataUrl' || key === 'installationVideo') return null;
-                                        if (typeof value === 'object' && value !== null) {
-                                            if (Array.isArray(value)) { // Handle strings array
-                                                return (
-                                                    <div key={key}>
-                                                        <h4 className="font-semibold capitalize">{key.replace(/([A-Z])/g, ' $1')}</h4>
-                                                        <div className="grid grid-cols-2 gap-2 mt-1">
-                                                        {value.map((item, index) => (
-                                                          item.voltage || item.plates ? (
-                                                            <div key={index} className="p-2 border rounded-md bg-muted/50">
-                                                                <p><b>String {index + 1}:</b></p>
-                                                                <p>Tensão: {item.voltage || 'N/A'} V</p>
-                                                                <p>Placas: {item.plates || 'N/A'}</p>
-                                                            </div>
-                                                          ) : null
-                                                        ))}
-                                                        </div>
-                                                    </div>
-                                                )
-                                            }
-                                            return null; // Don't render other objects for now
-                                        }
-                                        return (
-                                            <div key={key} className="flex justify-between border-b pb-1">
-                                                <span className="font-medium text-muted-foreground capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
-                                                <span className="text-right">{String(value) || 'N/A'}</span>
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-                            </ScrollArea>
-                        </TabsContent>
-                      </Tabs>
-                    )}
-                  </CardContent>
-                 <CardFooter className="flex flex-col items-stretch space-y-4 pt-4">
-                     <Separator />
-                     <h3 className="font-semibold text-lg flex items-center gap-2 pt-2"><Sparkles className="text-primary"/>Gerador de Relatório Final</h3>
-                     <Form {...finalReportForm}>
-                        <form onSubmit={finalReportForm.handleSubmit(handleGenerateFinalReport)} className="space-y-4">
-                            <FormField control={finalReportForm.control} name="protocolNumber" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Número de Protocolo</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="Insira o número do protocolo" {...field} disabled={!installation.reportSubmitted}/>
-                                    </FormControl>
-                                    <FormMessage/>
-                                </FormItem>
-                            )}/>
-                            <Button type="submit" disabled={isGenerating || !installation.reportSubmitted} className="w-full">
-                                {isGenerating ? "Gerando..." : "Gerar Relatório com IA"}
-                            </Button>
-                        </form>
-                    </Form>
-                     {isGenerating && (
-                        <div className="space-y-2 pt-4">
-                            <Skeleton className="h-4 w-1/4" />
-                            <Skeleton className="h-4 w-full" />
-                            <Skeleton className="h-4 w-full" />
-                            <Skeleton className="h-4 w-3/4" />
-                        </div>
-                    )}
-                    {generatedFinalReport && (
-                        <div className="space-y-2 pt-4">
-                            <div className="flex justify-between items-center">
-                               <h4 className="font-semibold">Relatório Final Gerado</h4>
-                               <Button variant="ghost" size="sm" onClick={() => copyToClipboard(generatedFinalReport, "Relatório copiado!")}>
-                                    <Copy className="mr-2 h-4 w-4"/>
-                                    Copiar
-                               </Button>
-                            </div>
-                            <ScrollArea className="h-48">
-                               <p className="p-4 border rounded-md bg-muted/50 whitespace-pre-wrap">{generatedFinalReport}</p>
-                            </ScrollArea>
-                        </div>
-                    )}
-                </CardFooter>
-            </Card>
         </div>
       </main>
     </div>
   );
 }
+
+    
