@@ -9,7 +9,7 @@ import { Installation } from '../page';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Link as LinkIcon, Edit, Trash2, Home, Building, FileCheck2, SlidersHorizontal, GripVertical } from 'lucide-react';
+import { Link as LinkIcon, Edit, Trash2, Home, Building, FileCheck2, SlidersHorizontal, GripVertical, CheckCircle, Bolt } from 'lucide-react';
 
 type KanbanCardProps = {
   installation: Installation;
@@ -41,7 +41,7 @@ export function KanbanCard({ installation }: KanbanCardProps) {
       <div
         ref={setNodeRef}
         style={style}
-        className="h-[150px] w-full rounded-lg border-2 border-primary bg-card opacity-50"
+        className="h-[180px] w-full rounded-lg border-2 border-primary bg-card opacity-50"
       />
     );
   }
@@ -63,6 +63,14 @@ export function KanbanCard({ installation }: KanbanCardProps) {
             <div className="flex items-center gap-2">
                 <FileCheck2 size={14} /> Projeto:
                 <span className="font-medium text-foreground">{installation.projectStatus}</span>
+            </div>
+             <div className="flex items-center gap-2">
+                <Bolt size={14} /> Instalação:
+                <span className="font-medium text-foreground">{installation.status}</span>
+            </div>
+             <div className="flex items-center gap-2">
+                <CheckCircle size={14} /> Homologação:
+                <span className="font-medium text-foreground">{installation.homologationStatus}</span>
             </div>
             <div>
                 Relatório Técnico: 

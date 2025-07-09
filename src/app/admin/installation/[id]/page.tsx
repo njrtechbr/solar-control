@@ -453,6 +453,12 @@ export default function InstallationDetailPage() {
     },
   ];
 
+  const statusItems = [
+    { label: "Status da Instalação", value: installation.status, icon: Bolt },
+    { label: "Status do Projeto", value: installation.projectStatus, icon: FileCheck2 },
+    { label: "Status da Homologação", value: installation.homologationStatus, icon: CheckCircle },
+  ];
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
        <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/95 backdrop-blur-sm px-4 md:px-6">
@@ -897,6 +903,34 @@ export default function InstallationDetailPage() {
                      <div className="flex items-center gap-2">
                         <Bolt className="h-4 w-4 text-muted-foreground"/>
                         <span>{installation.utilityCompany}</span>
+                    </div>
+                </CardContent>
+            </Card>
+
+             <Card>
+                <CardHeader>
+                    <CardTitle>Status Gerais</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm space-y-3">
+                    {statusItems.map((item, index) => (
+                         <div key={index} className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                <item.icon className="h-4 w-4"/>
+                                <span>{item.label}</span>
+                            </div>
+                            <Badge variant={item.value === 'Aprovado' || item.value === 'Concluído' ? 'default' : 'secondary'} className={item.value === 'Aprovado' || item.value === 'Concluído' ? 'bg-green-600' : ''}>{item.value}</Badge>
+                        </div>
+                    ))}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            <FileText className="h-4 w-4"/>
+                            <span>Relatório Técnico</span>
+                        </div>
+                        {installation.reportSubmitted ? (
+                            <Badge variant="default" className="bg-blue-600 hover:bg-blue-700">Enviado</Badge>
+                        ) : (
+                            <Badge variant="secondary">Pendente</Badge>
+                        )}
                     </div>
                 </CardContent>
             </Card>

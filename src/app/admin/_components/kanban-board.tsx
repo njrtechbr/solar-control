@@ -21,7 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { KanbanColumn } from './kanban-column';
 import { KanbanCard } from './kanban-card';
 import { Badge } from '@/components/ui/badge';
-import { FileCheck2, Home, Building } from 'lucide-react';
+import { FileCheck2, Home, Building, CheckCircle, Bolt, Hourglass } from 'lucide-react';
 
 export type KanbanColumnType = {
   id: string;
@@ -153,6 +153,14 @@ export function KanbanBoard({ installations, columns, onItemMove, statusType }: 
                      <div className="flex items-center gap-2">
                         <FileCheck2 size={14} /> Projeto:
                         <span className="font-medium text-foreground">{activeInstallation.projectStatus}</span>
+                    </div>
+                     <div className="flex items-center gap-2">
+                        <Bolt size={14} /> Instalação:
+                        <span className="font-medium text-foreground">{activeInstallation.status}</span>
+                    </div>
+                     <div className="flex items-center gap-2">
+                        <CheckCircle size={14} /> Homologação:
+                        <span className="font-medium text-foreground">{activeInstallation.homologationStatus}</span>
                     </div>
                      <div>
                         Relatório Técnico: 
