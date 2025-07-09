@@ -396,7 +396,7 @@ export default function InstallationDetailPage() {
       name: p.annotation || `Foto do Instalador ${index + 1}`,
       dataUrl: p.dataUrl,
       type: 'image',
-      date: installation.events.find(e => e.type === 'Conclusão')?.date || new Date().toISOString(),
+      date: (installation.events || []).find(e => e.type === 'Conclusão')?.date || new Date().toISOString(),
       source: 'Relatório do Instalador'
     })) || []),
     ...(installerReport?.installationVideoDataUrl ? [{
@@ -404,10 +404,10 @@ export default function InstallationDetailPage() {
       name: 'Vídeo da Instalação',
       dataUrl: installerReport.installationVideoDataUrl,
       type: 'video',
-      date: installation.events.find(e => e.type === 'Conclusão')?.date || new Date().toISOString(),
+      date: (installation.events || []).find(e => e.type === 'Conclusão')?.date || new Date().toISOString(),
       source: 'Relatório do Instalador'
     }] : []),
-    ...(installation.events?.flatMap(event => 
+    ...((installation.events || []).flatMap(event => 
       event.attachments?.map(att => ({
         id: `${event.id}_${att.name}`,
         name: att.name,
@@ -477,7 +477,7 @@ export default function InstallationDetailPage() {
                         <FormField control={processForm.control} name="protocolNumber" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Nº do Protocolo</FormLabel>
-                                <FormControl><Input placeholder="Número do protocolo" {...field} /></FormControl>
+                                <FormControl><Input placeholder="Número do protocolo" {...field} value={field.value ?? ''} /></FormControl>
                             </FormItem>
                         )}/>
                         <FormField control={processForm.control} name="protocolDate" render={({ field }) => (
@@ -595,7 +595,7 @@ export default function InstallationDetailPage() {
                                     <p className="text-sm">Use o botão abaixo para adicionar o primeiro evento.</p>
                                  </div>
                                )}
-                               {installation.events.map(event => {
+                               {(installation.events || []).map(event => {
                                    const EventIcon = EVENT_TYPES.find(e => e.value === event.type)?.icon || MessageSquare;
                                    return (
                                        <div key={event.id} className="relative">
@@ -713,7 +713,7 @@ export default function InstallationDetailPage() {
                                         <FormItem>
                                             <FormLabel>Número de Protocolo</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="Insira o número do protocolo" {...field} disabled={!installation.reportSubmitted} defaultValue={installation.protocolNumber}/>
+                                                <Input placeholder="Insira o número do protocolo" {...field} disabled={!installation.reportSubmitted} defaultValue={installation.protocolNumber || ''}/>
                                             </FormControl>
                                             <FormMessage/>
                                         </FormItem>
@@ -910,7 +910,7 @@ export default function InstallationDetailPage() {
                                         <FormItem>
                                             <FormLabel>Hora (HH:mm)</FormLabel>
                                             <FormControl>
-                                                <Input type="time" {...field} />
+                                                <Input type="time" {...field} value={field.value ?? ''}/>
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
