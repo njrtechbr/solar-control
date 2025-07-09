@@ -16,7 +16,7 @@ import {
 import { SortableContext, arrayMove } from '@dnd-kit/sortable';
 import { createPortal } from 'react-dom';
 
-import { Installation, InstallationStatus, ProjectStatus } from '../page';
+import { Installation, InstallationStatus, ProjectStatus, HomologationStatus } from '../page';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { KanbanColumn } from './kanban-column';
 import { KanbanCard } from './kanban-card';
@@ -31,11 +31,12 @@ export type KanbanColumnType = {
 type KanbanBoardProps = {
   installations: Installation[];
   columns: KanbanColumnType[];
-  onItemMove: (installationId: number, newStatus: string, oldStatus: string) => void;
+  onItemMove: (installationId: number, newStatus: string, oldStatus: string, statusType: keyof Installation) => void;
+  statusType: keyof Installation;
 };
 
 
-export function KanbanBoard({ installations, columns, onItemMove }: KanbanBoardProps) {
+export function KanbanBoard({ installations, columns, onItemMove, statusType }: KanbanBoardProps) {
   const [activeInstallation, setActiveInstallation] = useState<Installation | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -55,10 +56,11 @@ export function KanbanBoard({ installations, columns, onItemMove }: KanbanBoardP
   );
 
   function getStatusForInstallation(inst: Installation): string {
-    // This is a bit of a hack, but we need to determine which board we are on.
-    // The columns prop tells us.
-    const isProjectStatusBoard = columns.some(c => c.id === "Não Enviado");
-    return isProjectStatusBoard ? inst.projectStatus : inst.status;
+    const statusValue = inst[statusType];
+    if (typeof statusValue === 'boolean') {
+      return statusValue ? 'Enviado' : 'Pendente';
+    }
+    return String(statusValue);
   }
 
   function onDragStart(event: DragStartEvent) {
@@ -92,7 +94,7 @@ export function KanbanBoard({ installations, columns, onItemMove }: KanbanBoardP
     }
     
     if (newStatus !== oldStatus) {
-      onItemMove(installationId, newStatus, oldStatus);
+      onItemMove(installationId, newStatus, oldStatus, statusType);
     }
   }
 
@@ -111,7 +113,7 @@ export function KanbanBoard({ installations, columns, onItemMove }: KanbanBoardP
         const newStatus = over.id as string;
         
         if (newStatus !== oldStatus) {
-           onItemMove(installation.id!, newStatus, oldStatus);
+           onItemMove(installation.id!, newStatus, oldStatus, statusType);
         }
     }
   }
@@ -124,7 +126,7 @@ export function KanbanBoard({ installations, columns, onItemMove }: KanbanBoardP
       onDragOver={onDragOver}
       collisionDetection={closestCorners}
     >
-      <div className="grid grid-cols-5 gap-4">
+      <div className={`grid grid-cols-${columns.length} gap-4`}>
         <SortableContext items={columnsId}>
           {columns.map((col) => (
             <KanbanColumn
@@ -169,5 +171,3 @@ export function KanbanBoard({ installations, columns, onItemMove }: KanbanBoardP
     </DndContext>
   );
 }
-
-    

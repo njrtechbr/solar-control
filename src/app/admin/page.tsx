@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { User, SunMedium, Home, Building, Bolt, PlusCircle, LayoutDashboard, ListChecks } from "lucide-react";
+import { User, SunMedium, Home, Building, Bolt, PlusCircle, LayoutDashboard, ListChecks, FileText, CheckCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -75,6 +75,7 @@ export type Installation = z.infer<typeof installationSchema>;
 
 export type InstallationStatus = Installation['status'];
 export type ProjectStatus = Installation['projectStatus'];
+export type HomologationStatus = Installation['homologationStatus'];
 
 const INSTALLATION_STATUS_COLUMNS: KanbanColumnType[] = [
   { id: 'Pendente', title: 'Pendente' },
@@ -89,6 +90,17 @@ const PROCESS_STATUS_COLUMNS: KanbanColumnType[] = [
   { id: 'Enviado para Análise', title: 'Em Análise' },
   { id: 'Aprovado', title: 'Aprovado' },
   { id: 'Reprovado', title: 'Reprovado' },
+];
+
+const HOMOLOGATION_STATUS_COLUMNS: KanbanColumnType[] = [
+  { id: 'Pendente', title: 'Pendente' },
+  { id: 'Aprovado', title: 'Aprovado' },
+  { id: 'Reprovado', title: 'Reprovado' },
+];
+
+const REPORT_STATUS_COLUMNS: KanbanColumnType[] = [
+  { id: 'Enviado', title: 'Enviado' },
+  { id: 'Pendente', title: 'Pendente' },
 ];
 
 
@@ -282,13 +294,24 @@ export default function AdminPage() {
       status: "Pendente",
       projectStatus: "Não Enviado",
       homologationStatus: "Pendente",
+      reportSubmitted: false,
       events: [],
       documents: [],
     },
   });
   
   function handleCreate(values: Installation) {
-    const newInstallation = { ...values, id: Date.now(), reportSubmitted: false, events: [], documents: [], scheduledDate: undefined };
+    const newInstallation: Installation = { 
+        ...values, 
+        id: Date.now(), 
+        reportSubmitted: false, 
+        events: [], 
+        documents: [], 
+        scheduledDate: undefined,
+        status: "Pendente",
+        projectStatus: "Não Enviado",
+        homologationStatus: "Pendente",
+     };
     
     if (values.protocolNumber) {
         newInstallation.protocolDate = new Date().toISOString();
@@ -307,40 +330,35 @@ export default function AdminPage() {
     setCreateDialogOpen(false);
   }
   
-  const handleItemMove = (installationId: number, newStatus: string, oldStatus: string) => {
+  const handleItemMove = (installationId: number, newStatus: string, oldStatus: string, statusType: keyof Installation) => {
     const allInstallations = [...installations];
     const installationIndex = allInstallations.findIndex(inst => inst.id === installationId);
     if (installationIndex === -1) return;
 
     const installation = allInstallations[installationIndex];
     
-    // Determine which status to update based on the columns
-    const isProjectStatusBoard = PROCESS_STATUS_COLUMNS.some(c => c.id === newStatus || c.id === oldStatus);
-    
     let eventDescription = '';
     
-    if (isProjectStatusBoard) {
-        if (installation.projectStatus === newStatus) return;
-        installation.projectStatus = newStatus as ProjectStatus;
-        eventDescription = `Status do projeto alterado de "${oldStatus}" para "${newStatus}".`;
-    } else {
-        if (installation.status === newStatus) return;
-        installation.status = newStatus as InstallationStatus;
-        eventDescription = `Status da instalação alterado de "${oldStatus}" para "${newStatus}".`;
+    if (installation[statusType] === newStatus) return;
 
-        if (newStatus === "Agendado" && !installation.scheduledDate) {
-            const scheduledDate = new Date(Date.now() + 86400000 * 7); // Schedule for 7 days from now as a default
-            installation.scheduledDate = scheduledDate.toISOString();
-            const scheduleEvent = {
-                id: new Date().toISOString() + "_schedule",
-                date: new Date().toISOString(),
-                type: 'Agendamento',
-                description: `Instalação agendada para ${format(scheduledDate, "dd 'de' MMMM, yyyy 'às' HH:mm", { locale: ptBR })}.`,
-                attachments: [],
-            };
-            installation.events.push(scheduleEvent);
-        }
+    // A bit of type magic to satisfy TypeScript
+    const valueToSet: string | boolean = statusType === 'reportSubmitted' ? (newStatus === 'Enviado') : newStatus;
+    (installation as any)[statusType] = valueToSet;
+    eventDescription = `Status de '${statusType}' alterado de "${oldStatus}" para "${newStatus}".`;
+
+    if (statusType === "status" && newStatus === "Agendado" && !installation.scheduledDate) {
+        const scheduledDate = new Date(Date.now() + 86400000 * 7); // Schedule for 7 days from now as a default
+        installation.scheduledDate = scheduledDate.toISOString();
+        const scheduleEvent = {
+            id: new Date().toISOString() + "_schedule",
+            date: new Date().toISOString(),
+            type: 'Agendamento',
+            description: `Instalação agendada para ${format(scheduledDate, "dd 'de' MMMM, yyyy 'às' HH:mm", { locale: ptBR })}.`,
+            attachments: [],
+        };
+        installation.events.push(scheduleEvent);
     }
+    
 
     // Add event
     const newEvent = {
@@ -457,34 +475,58 @@ export default function AdminPage() {
         </header>
 
         <main className="flex-1 overflow-hidden p-4 md:p-6">
-            <Tabs defaultValue="installation-status">
-                <TabsList className="mb-4">
+            <Tabs defaultValue="installation-status" className="flex flex-col h-full">
+                <TabsList className="mb-4 self-start">
                     <TabsTrigger value="installation-status"><LayoutDashboard className="mr-2 h-4 w-4" />Status da Instalação</TabsTrigger>
-                    <TabsTrigger value="process-status"><ListChecks className="mr-2 h-4 w-4" />Status do Processo</TabsTrigger>
+                    <TabsTrigger value="process-status"><ListChecks className="mr-2 h-4 w-4" />Status do Projeto</TabsTrigger>
+                    <TabsTrigger value="homologation-status"><CheckCircle className="mr-2 h-4 w-4" />Status da Homologação</TabsTrigger>
+                    <TabsTrigger value="report-status"><FileText className="mr-2 h-4 w-4" />Status do Relatório</TabsTrigger>
                 </TabsList>
-                <TabsContent value="installation-status" className="h-full overflow-x-auto">
-                     <div className="min-w-[1200px] h-full">
-                        <KanbanBoard 
-                            installations={installations} 
-                            columns={INSTALLATION_STATUS_COLUMNS}
-                            onItemMove={handleItemMove} 
-                        />
-                    </div>
-                </TabsContent>
-                <TabsContent value="process-status" className="h-full overflow-x-auto">
-                    <div className="min-w-[900px] h-full">
-                        <KanbanBoard 
-                            installations={installations} 
-                            columns={PROCESS_STATUS_COLUMNS}
-                            onItemMove={handleItemMove} 
-                        />
-                    </div>
-                </TabsContent>
+                <div className="flex-grow overflow-x-auto">
+                    <TabsContent value="installation-status" className="h-full">
+                         <div className="min-w-[1200px] h-full">
+                            <KanbanBoard 
+                                installations={installations} 
+                                columns={INSTALLATION_STATUS_COLUMNS}
+                                onItemMove={handleItemMove} 
+                                statusType="status"
+                            />
+                        </div>
+                    </TabsContent>
+                    <TabsContent value="process-status" className="h-full">
+                        <div className="min-w-[900px] h-full">
+                            <KanbanBoard 
+                                installations={installations} 
+                                columns={PROCESS_STATUS_COLUMNS}
+                                onItemMove={handleItemMove} 
+                                statusType="projectStatus"
+                            />
+                        </div>
+                    </TabsContent>
+                    <TabsContent value="homologation-status" className="h-full">
+                        <div className="min-w-[700px] h-full">
+                            <KanbanBoard 
+                                installations={installations} 
+                                columns={HOMOLOGATION_STATUS_COLUMNS}
+                                onItemMove={handleItemMove} 
+                                statusType="homologationStatus"
+                            />
+                        </div>
+                    </TabsContent>
+                     <TabsContent value="report-status" className="h-full">
+                        <div className="min-w-[500px] h-full">
+                            <KanbanBoard 
+                                installations={installations} 
+                                columns={REPORT_STATUS_COLUMNS}
+                                onItemMove={handleItemMove} 
+                                statusType="reportSubmitted"
+                            />
+                        </div>
+                    </TabsContent>
+                </div>
             </Tabs>
         </main>
       </div>
     </>
   );
 }
-
-    
