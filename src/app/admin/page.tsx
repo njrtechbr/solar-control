@@ -6,7 +6,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { User, SunMedium, Home, Building, Bolt, PlusCircle, LayoutDashboard, ListChecks, FileText, CheckCircle, List } from "lucide-react";
+import { User, SunMedium, Home, Building, Bolt, PlusCircle, LayoutDashboard, ListChecks, FileText, CheckCircle, List, Calendar } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +35,7 @@ import { InstallationTable, getColumns } from "./_components/installation-table"
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CalendarView } from "./_components/calendar-view";
 
 
 export const InstallationStatus = z.enum(["Pendente", "Agendado", "Em Andamento", "Concluído", "Cancelado"]);
@@ -534,14 +535,15 @@ export default function AdminPage() {
 
         <main className="flex-1 overflow-hidden p-4 md:p-6">
             <Tabs defaultValue="installation-status" className="flex flex-col h-full">
-                <TabsList className="mb-4 self-start">
+                <TabsList className="mb-4 self-start flex-wrap h-auto justify-start">
                     <TabsTrigger value="installation-status"><LayoutDashboard className="mr-2 h-4 w-4" />Status da Instalação</TabsTrigger>
                     <TabsTrigger value="process-status"><ListChecks className="mr-2 h-4 w-4" />Status do Projeto</TabsTrigger>
                     <TabsTrigger value="homologation-status"><CheckCircle className="mr-2 h-4 w-4" />Status da Homologação</TabsTrigger>
                     <TabsTrigger value="report-status"><FileText className="mr-2 h-4 w-4" />Status do Relatório</TabsTrigger>
+                    <TabsTrigger value="calendar-view"><Calendar className="mr-2 h-4 w-4" />Calendário</TabsTrigger>
                     <TabsTrigger value="list-view"><List className="mr-2 h-4 w-4" />Lista Completa</TabsTrigger>
                 </TabsList>
-                <div className="flex-grow overflow-x-auto">
+                <div className="flex-grow overflow-auto">
                     <TabsContent value="installation-status" className="h-full">
                          <div className="min-w-[1200px] h-full">
                             <KanbanBoard 
@@ -581,6 +583,9 @@ export default function AdminPage() {
                                 statusType="reportSubmitted"
                             />
                         </div>
+                    </TabsContent>
+                    <TabsContent value="calendar-view" className="h-full">
+                        <CalendarView installations={installations} />
                     </TabsContent>
                     <TabsContent value="list-view" className="h-full">
                         <InstallationTable 

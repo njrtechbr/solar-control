@@ -1,3 +1,4 @@
+@import 'react-big-calendar/lib/css/react-big-calendar.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -80,5 +81,45 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  
+  .rbc-toolbar button {
+    @apply text-foreground bg-card border-border hover:bg-muted focus:ring-ring focus:ring-offset-background;
+  }
+
+  .rbc-toolbar button.rbc-active {
+    @apply bg-primary text-primary-foreground;
+  }
+
+  .rbc-calendar {
+      @apply bg-card text-foreground rounded-lg border p-2;
+  }
+  
+  .rbc-header {
+      @apply text-foreground border-border p-2 text-sm font-medium;
+  }
+
+  .rbc-day-bg {
+    @apply border-border;
+  }
+
+  .rbc-off-range-bg {
+    @apply bg-muted/50;
+  }
+  
+  .rbc-today {
+      @apply bg-secondary;
+  }
+
+  .rbc-event {
+    @apply bg-primary text-primary-foreground p-1 rounded-md text-xs;
+  }
+  .rbc-event:focus {
+    outline: none;
+    @apply ring-2 ring-ring ring-offset-2;
+  }
+
+  .rbc-event.rbc-selected {
+    @apply bg-accent text-accent-foreground;
   }
 }
