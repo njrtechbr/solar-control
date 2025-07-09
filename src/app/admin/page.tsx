@@ -5,7 +5,8 @@ import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Link as LinkIcon, User, SunMedium, Copy, Home, Building, Bolt, FileText, Trash2, Edit, MoreHorizontal, AlertTriangle, FileCheck2, Camera, Video, PlusCircle, CheckCircle, XCircle, Clock, Sparkles } from "lucide-react";
+import Link from 'next/link';
+import { Link as LinkIcon, User, SunMedium, Copy, Home, Building, Bolt, FileText, Trash2, Edit, AlertTriangle, FileCheck2, PlusCircle, CheckCircle, XCircle, Clock, Sparkles, SlidersHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -48,11 +49,8 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { generateFinalReport, type GenerateFinalReportInput } from "@/ai/flows/generate-report-flow";
-import { Skeleton } from "@/components/ui/skeleton";
 
+// Extended Installation type for CRM features
 const installationSchema = z.object({
   id: z.number().optional(),
   clientName: z.string().min(2, "O nome do cliente é obrigatório."),
@@ -64,23 +62,23 @@ const installationSchema = z.object({
     required_error: "Selecione o tipo de instalação.",
   }),
   utilityCompany: z.string().min(2, "O nome da concessionária é obrigatório."),
-  status: z.enum(["Pendente", "Concluído", "Cancelado"]).default("Pendente"),
+  status: z.enum(["Pendente", "Agendado", "Em Andamento", "Concluído", "Cancelado"]).default("Pendente"),
   reportSubmitted: z.boolean().default(false),
+  events: z.array(z.object({
+    id: z.string(),
+    date: z.string(),
+    type: z.string(),
+    description: z.string(),
+    attachments: z.array(z.object({ name: z.string(), dataUrl: z.string() })).optional(),
+  })).default([]),
 });
 
-type Installation = z.infer<typeof installationSchema>;
-
-const finalReportSchema = z.object({
-    protocolNumber: z.string().min(1, "O número do protocolo é obrigatório."),
-});
-
-type FinalReportValues = z.infer<typeof finalReportSchema>;
-
+export type Installation = z.infer<typeof installationSchema>;
 
 const initialInstallations: Installation[] = [
-    { id: 1, clientName: "Condomínio Sol Nascente", address: "Rua A, 123", city: "Campinas", state: "SP", zipCode: "13000-001", installationType: "comercial", utilityCompany: "CPFL", status: "Pendente", reportSubmitted: false },
-    { id: 2, clientName: "Maria Silva", address: "Rua B, 456", city: "São Paulo", state: "SP", zipCode: "01000-002", installationType: "residencial", utilityCompany: "Enel", status: "Concluído", reportSubmitted: true },
-    { id: 3, clientName: "Supermercado Economia", address: "Av. C, 789", city: "Valinhos", state: "SP", zipCode: "13270-003", installationType: "comercial", utilityCompany: "CPFL", status: "Cancelado", reportSubmitted: false },
+    { id: 1, clientName: "Condomínio Sol Nascente", address: "Rua A, 123", city: "Campinas", state: "SP", zipCode: "13000-001", installationType: "comercial", utilityCompany: "CPFL", status: "Agendado", reportSubmitted: false, events: [] },
+    { id: 2, clientName: "Maria Silva", address: "Rua B, 456", city: "São Paulo", state: "SP", zipCode: "01000-002", installationType: "residencial", utilityCompany: "Enel", status: "Concluído", reportSubmitted: true, events: [] },
+    { id: 3, clientName: "Supermercado Economia", address: "Av. C, 789", city: "Valinhos", state: "SP", zipCode: "13270-003", installationType: "comercial", utilityCompany: "CPFL", status: "Cancelado", reportSubmitted: false, events: [] },
 ];
 
 const createSampleReport = () => {
@@ -105,10 +103,8 @@ const createSampleReport = () => {
       photo_uploads: [
           { dataUrl: "https://placehold.co/400x400.png", annotation: "Visão geral dos painéis" },
           { dataUrl: "https://placehold.co/400x400.png", annotation: "Inversor instalado" },
-          { dataUrl: "https://placehold.co/400x400.png", annotation: "Aterramento concluído" },
-          { dataUrl: "https://placehold.co/400x400.png", annotation: "Etiqueta do inversor" },
       ],
-      installationVideoDataUrl: "https://placehold.co/480x360.mp4", // Placeholder for video
+      installationVideoDataUrl: "https://placehold.co/480x360.mp4",
   };
 };
 
@@ -117,25 +113,18 @@ export default function AdminPage() {
   const [installations, setInstallations] = useState<Installation[]>([]);
   const [editingInstallation, setEditingInstallation] = useState<Installation | null>(null);
   const [deletingInstallation, setDeletingInstallation] = useState<Installation | null>(null);
-  const [viewingReport, setViewingReport] = useState<any | null>(null);
   const [linkDialog, setLinkDialog] = useState({ isOpen: false, link: "" });
   const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
-  const [generatedFinalReport, setGeneratedFinalReport] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-
 
   useEffect(() => {
-    // Load installations from localStorage on mount
     const savedInstallations = localStorage.getItem('installations');
     const loadedInstallations = savedInstallations ? JSON.parse(savedInstallations) : initialInstallations;
     
-    // Check for a sample report for "Maria Silva" and create if it doesn't exist
     const sampleReportKey = 'report_Maria Silva';
     if (!localStorage.getItem(sampleReportKey)) {
         localStorage.setItem(sampleReportKey, JSON.stringify(createSampleReport()));
     }
 
-    // Check for submitted reports
     const updatedInstallations = loadedInstallations.map((inst: Installation) => {
         const report = localStorage.getItem(`report_${inst.clientName}`);
         return { ...inst, reportSubmitted: !!report };
@@ -161,6 +150,7 @@ export default function AdminPage() {
       utilityCompany: "",
       installationType: "residencial",
       status: "Pendente",
+      events: [],
     },
   });
   
@@ -168,37 +158,8 @@ export default function AdminPage() {
     resolver: zodResolver(installationSchema),
   });
 
-  const finalReportForm = useForm<FinalReportValues>({
-    resolver: zodResolver(finalReportSchema),
-  });
-
-  async function handleGenerateFinalReport(values: FinalReportValues) {
-    if (!viewingReport) return;
-    
-    setIsGenerating(true);
-    setGeneratedFinalReport(null);
-    try {
-        const input: GenerateFinalReportInput = {
-            installerReport: JSON.stringify(viewingReport),
-            protocolNumber: values.protocolNumber,
-        };
-        const result = await generateFinalReport(input);
-        setGeneratedFinalReport(result.finalReport);
-
-    } catch(error) {
-        console.error("Error generating final report:", error);
-        toast({
-            title: "Erro ao Gerar Relatório",
-            description: "Não foi possível gerar o relatório final. Tente novamente.",
-            variant: "destructive"
-        })
-    } finally {
-        setIsGenerating(false);
-    }
-  }
-
   function handleCreate(values: Installation) {
-    const newInstallation = { ...values, id: Date.now(), reportSubmitted: false };
+    const newInstallation = { ...values, id: Date.now(), reportSubmitted: false, events: [] };
     saveInstallations([...installations, newInstallation]);
     toast({ title: "Instalação Cadastrada!", description: `Cliente ${values.clientName} adicionado.` });
     form.reset();
@@ -216,7 +177,6 @@ export default function AdminPage() {
     if (!deletingInstallation) return;
     const updatedInstallations = installations.filter(inst => inst.id !== deletingInstallation.id)
     saveInstallations(updatedInstallations);
-    // Also remove the report from localStorage if it exists
     localStorage.removeItem(`report_${deletingInstallation.clientName}`);
     toast({ title: "Instalação Excluída!", variant: "destructive", description: `O registro de ${deletingInstallation.clientName} foi removido.` });
     setDeletingInstallation(null);
@@ -232,37 +192,26 @@ export default function AdminPage() {
     setLinkDialog({ isOpen: true, link });
   }
 
-  function copyToClipboard(text: string, message: string) {
+  function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text);
     toast({
-      title: message,
+      title: "Link copiado!",
     });
-  }
-
-  function openReportDialog(clientName: string) {
-    const reportData = localStorage.getItem(`report_${clientName}`);
-    if (reportData) {
-        setViewingReport(JSON.parse(reportData));
-        setGeneratedFinalReport(null); // Reset previous generation
-        finalReportForm.reset();
-    } else {
-        toast({
-            title: "Relatório não encontrado",
-            description: "O instalador ainda não enviou o relatório para este cliente.",
-            variant: "destructive"
-        })
-    }
   }
 
   const getStatusProps = (status: Installation["status"]) => {
     switch (status) {
       case "Concluído":
-        return { variant: "default", icon: <CheckCircle className="h-4 w-4" />, className: "bg-green-600 hover:bg-green-700" };
+        return { icon: <CheckCircle className="h-4 w-4" />, className: "bg-green-600 hover:bg-green-700" };
       case "Cancelado":
-        return { variant: "destructive", icon: <XCircle className="h-4 w-4" />, className: "" };
+        return { icon: <XCircle className="h-4 w-4" />, className: "bg-red-600 hover:bg-red-700" };
+       case "Em Andamento":
+        return { icon: <Bolt className="h-4 w-4" />, className: "bg-yellow-500 hover:bg-yellow-600" };
+      case "Agendado":
+         return { icon: <Clock className="h-4 w-4" />, className: "bg-blue-500 hover:bg-blue-600" };
       case "Pendente":
       default:
-        return { variant: "secondary", icon: <Clock className="h-4 w-4" />, className: "" };
+        return { icon: <FileText className="h-4 w-4" />, className: "bg-gray-500 hover:bg-gray-600" };
     }
   };
 
@@ -289,7 +238,7 @@ export default function AdminPage() {
                       Cadastrar Nova Instalação
                     </DialogTitle>
                     <DialogDescription>
-                      Insira os dados para criar um novo registro de instalação. O link para o instalador será gerado em seguida.
+                      Insira os dados para criar um novo registro de instalação.
                     </DialogDescription>
                   </DialogHeader>
                   <Form {...form}>
@@ -369,9 +318,9 @@ export default function AdminPage() {
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                       <span className="truncate pr-2">{inst.clientName}</span>
-                       <Badge variant={statusProps.variant} className={statusProps.className}>
+                       <Badge variant="default" className={statusProps.className}>
                           {statusProps.icon}
-                          <span>{inst.status}</span>
+                          <span className="ml-1">{inst.status}</span>
                        </Badge>
                     </CardTitle>
                     <CardDescription className="flex items-center gap-2 pt-1">
@@ -380,8 +329,8 @@ export default function AdminPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="flex-grow space-y-3">
-                     <div className="text-sm text-muted-foreground">
-                        <div className="flex items-center gap-2">
+                     <div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                            <FileText size={14} /> Relatório do Instalador: 
                            {inst.reportSubmitted ? (
                                 <Badge variant="default" className="bg-blue-600 hover:bg-blue-700">Enviado</Badge>
@@ -390,23 +339,19 @@ export default function AdminPage() {
                             )}
                         </div>
                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        <div className="flex items-center gap-2">
+                      <div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                            <Bolt size={14} /> Concessionária:
                            <span className="font-medium text-foreground">{inst.utilityCompany}</span>
                         </div>
                      </div>
                   </CardContent>
                   <CardFooter className="flex-col items-stretch gap-2">
-                      {inst.reportSubmitted ? (
-                        <Button className="w-full" onClick={() => openReportDialog(inst.clientName)}>
-                          <FileCheck2 className="mr-2 h-4 w-4" /> Ver Relatório Completo
-                        </Button>
-                      ) : (
-                        <Button className="w-full" variant="outline" disabled>
-                          <FileCheck2 className="mr-2 h-4 w-4" /> Aguardando Relatório
-                        </Button>
-                      )}
+                      <Link href={`/admin/installation/${inst.id}`} passHref>
+                          <Button className="w-full">
+                            <SlidersHorizontal className="mr-2 h-4 w-4" /> Gerenciar
+                          </Button>
+                      </Link>
                       <div className="grid grid-cols-3 gap-2">
                         <Button variant="secondary" onClick={() => generateLink(inst.clientName)}>
                             <LinkIcon />
@@ -447,8 +392,10 @@ export default function AdminPage() {
                <FormField control={editForm.control} name="status" render={({ field }) => (
                 <FormItem>
                     <FormLabel>Status</FormLabel>
-                    <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4 pt-2">
+                    <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-wrap gap-4 pt-2">
                         <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Pendente" /></FormControl><FormLabel className="font-normal">Pendente</FormLabel></FormItem>
+                        <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Agendado" /></FormControl><FormLabel className="font-normal">Agendado</FormLabel></FormItem>
+                         <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Em Andamento" /></FormControl><FormLabel className="font-normal">Em Andamento</FormLabel></FormItem>
                         <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Concluído" /></FormControl><FormLabel className="font-normal">Concluído</FormLabel></FormItem>
                         <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Cancelado" /></FormControl><FormLabel className="font-normal">Cancelado</FormLabel></FormItem>
                     </RadioGroup>
@@ -495,7 +442,7 @@ export default function AdminPage() {
           <div className="flex items-center space-x-2 rounded-md border bg-muted p-2">
             <LinkIcon className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
             <Input id="link" value={linkDialog.link} readOnly className="flex-1 bg-transparent ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 border-0" />
-            <Button type="button" size="sm" className="px-3" onClick={() => copyToClipboard(linkDialog.link, "Link copiado!")}>
+            <Button type="button" size="sm" className="px-3" onClick={() => copyToClipboard(linkDialog.link)}>
               <span className="sr-only">Copiar</span>
               <Copy className="h-4 w-4" />
             </Button>
@@ -505,159 +452,8 @@ export default function AdminPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-       {/* View Report Dialog */}
-        <Dialog open={!!viewingReport} onOpenChange={(open) => !open && setViewingReport(null)}>
-            <DialogContent className="sm:max-w-3xl">
-                <DialogHeader>
-                    <DialogTitle>Relatório de Instalação - {viewingReport?.clientName}</DialogTitle>
-                    <DialogDescription>Detalhes completos preenchidos pelo instalador.</DialogDescription>
-                </DialogHeader>
-                <ScrollArea className="max-h-[70vh] pr-6">
-                {viewingReport && (
-                    <div className="space-y-6 py-4 text-sm">
-                        
-                        <div>
-                            <h3 className="font-semibold text-lg mb-2">Informações Gerais</h3>
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                                <p><strong>Cliente:</strong> {viewingReport.clientName}</p>
-                                <p><strong>Potência do Painel:</strong> {viewingReport.panelPower || 'N/A'} Wp</p>
-                            </div>
-                        </div>
-                        <Separator />
-
-                        <div>
-                            <h3 className="font-semibold text-lg mb-2">Medições das Strings (VCC)</h3>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                {viewingReport.strings && viewingReport.strings.map((s: any, i: number) => (
-                                    (s.voltage || s.plates) && (
-                                    <div key={i} className="p-2 border rounded-md bg-muted/50">
-                                        <p className="font-medium">String {i+1}</p> 
-                                        <p>Tensão: {s.voltage || 'N/A'} V</p>
-                                        <p>Placas: {s.plates || 'N/A'}</p>
-                                    </div>
-                                    )
-                                ))}
-                            </div>
-                        </div>
-                         <Separator />
-
-                        <div>
-                            <h3 className="font-semibold text-lg mb-2">Medições Elétricas (CA)</h3>
-                            <div className="grid grid-cols-2 gap-x-8 gap-y-1">
-                                <p><strong>F1 x N:</strong> {viewingReport.phase1Neutro || 'N/A'} V</p>
-                                <p><strong>F2 x N:</strong> {viewingReport.phase2Neutro || 'N/A'} V</p>
-                                <p><strong>F3 x N:</strong> {viewingReport.phase3Neutro || 'N/A'} V</p>
-                                <p><strong>F1 x F2:</strong> {viewingReport.phase1phase2 || 'N/A'} V</p>
-                                <p><strong>F1 x F3:</strong> {viewingReport.phase1phase3 || 'N/A'} V</p>
-                                <p><strong>F2 x F3:</strong> {viewingReport.phase2phase3 || 'N/A'} V</p>
-                                <p><strong>Fase x Terra:</strong> {viewingReport.phaseTerra || 'N/A'} V</p>
-                                <p><strong>Neutro x Terra:</strong> {viewingReport.neutroTerra || 'N/A'} V</p>
-                            </div>
-                        </div>
-                         <Separator />
-                        
-                        <div>
-                            <h3 className="font-semibold text-lg mb-2">Componentes e Cabeamento</h3>
-                            <div className="grid grid-cols-2 gap-x-8 gap-y-1">
-                                <p><strong>Cabo Medidor x Disjuntor:</strong> {viewingReport.cableMeterToBreaker || 'N/A'}</p>
-                                <p><strong>Cabo Disjuntor x Inversor:</strong> {viewingReport.cableBreakerToInverter || 'N/A'}</p>
-                                <p><strong>Disjuntor Geral:</strong> {viewingReport.generalBreaker || 'N/A'}</p>
-                                <p><strong>Disjuntor Inversor:</strong> {viewingReport.inverterBreaker || 'N/A'}</p>
-                            </div>
-                        </div>
-                        <Separator />
-                        
-                         <div>
-                            <h3 className="font-semibold text-lg mb-2 flex items-center gap-2"><Camera /> Documentação Fotográfica</h3>
-                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                {viewingReport.photo_uploads && viewingReport.photo_uploads.map((photo: any, index: number) => (
-                                    photo.dataUrl && (
-                                        <div key={index} className="space-y-1">
-                                            <a href={photo.dataUrl} target="_blank" rel="noopener noreferrer">
-                                                <img src={photo.dataUrl} alt={photo.annotation || `Foto ${index + 1}`} className="rounded-md object-cover aspect-square hover:opacity-80 transition-opacity" />
-                                            </a>
-                                            <p className="text-xs text-muted-foreground truncate">{photo.annotation || `Foto ${index + 1}`}</p>
-                                        </div>
-                                    )
-                                ))}
-                            </div>
-                        </div>
-                        <Separator />
-
-                        <div>
-                            <h3 className="font-semibold text-lg mb-2 flex items-center gap-2"><Video /> Vídeo da Instalação</h3>
-                            {viewingReport.installationVideoDataUrl ? (
-                                <video src={viewingReport.installationVideoDataUrl} controls className="w-full rounded-md" />
-                            ) : (
-                                <p>Nenhum vídeo enviado.</p>
-                            )}
-                        </div>
-                        <Separator />
-
-                        <div>
-                            <h3 className="font-semibold text-lg mb-2">Verificação Final</h3>
-                            <p><strong>Datalogger Online:</strong> {viewingReport.dataloggerConnected ? 'Sim' : 'Não'}</p>
-                            {viewingReport.observations && (
-                                <>
-                                    <p className="font-medium mt-2">Observações:</p>
-                                    <p className="p-2 border rounded-md bg-muted/50 whitespace-pre-wrap">{viewingReport.observations}</p>
-                                </>
-                            )}
-                        </div>
-
-                         <Separator />
-                        <div className="space-y-4 pt-4">
-                            <h3 className="font-semibold text-lg flex items-center gap-2"><Sparkles className="text-primary"/>Gerador de Relatório Final</h3>
-                            <Form {...finalReportForm}>
-                                <form onSubmit={finalReportForm.handleSubmit(handleGenerateFinalReport)} className="space-y-4">
-                                    <FormField control={finalReportForm.control} name="protocolNumber" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Número de Protocolo</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="Insira o número do protocolo" {...field}/>
-                                            </FormControl>
-                                            <FormMessage/>
-                                        </FormItem>
-                                    )}/>
-                                    <Button type="submit" disabled={isGenerating}>
-                                        {isGenerating ? "Gerando..." : "Gerar Relatório Final com IA"}
-                                    </Button>
-                                </form>
-                            </Form>
-                            {isGenerating && (
-                                <div className="space-y-2 pt-4">
-                                    <Skeleton className="h-4 w-1/4" />
-                                    <Skeleton className="h-4 w-full" />
-                                    <Skeleton className="h-4 w-full" />
-                                    <Skeleton className="h-4 w-3/4" />
-                                </div>
-                            )}
-                            {generatedFinalReport && (
-                                <div className="space-y-2 pt-4">
-                                    <div className="flex justify-between items-center">
-                                       <h4 className="font-semibold">Relatório Final Gerado</h4>
-                                       <Button variant="ghost" size="sm" onClick={() => copyToClipboard(generatedFinalReport, "Relatório copiado!")}>
-                                            <Copy className="mr-2 h-4 w-4"/>
-                                            Copiar
-                                       </Button>
-                                    </div>
-                                    <p className="p-4 border rounded-md bg-muted/50 whitespace-pre-wrap">{generatedFinalReport}</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-                </ScrollArea>
-                <DialogFooter>
-                    <DialogClose asChild>
-                        <Button variant="outline">Fechar</Button>
-                    </DialogClose>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
     </>
   );
 }
 
-    
+  
