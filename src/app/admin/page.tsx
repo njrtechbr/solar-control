@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Link as LinkIcon, User, SunMedium, Copy, Home, Building, Bolt, FileText, Trash2, Edit, MoreHorizontal, AlertTriangle, FileCheck2, Camera, Video } from "lucide-react";
+import { Link as LinkIcon, User, SunMedium, Copy, Home, Building, Bolt, FileText, Trash2, Edit, MoreHorizontal, AlertTriangle, FileCheck2, Camera, Video, PlusCircle, CheckCircle, XCircle, Clock } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -46,22 +46,6 @@ import {
   DialogTrigger,
   DialogClose
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -97,6 +81,7 @@ export default function AdminPage() {
   const [deletingInstallation, setDeletingInstallation] = useState<Installation | null>(null);
   const [viewingReport, setViewingReport] = useState<any | null>(null);
   const [linkDialog, setLinkDialog] = useState({ isOpen: false, link: "" });
+  const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
 
   useEffect(() => {
     // Load installations from localStorage on mount
@@ -140,6 +125,7 @@ export default function AdminPage() {
     saveInstallations([...installations, newInstallation]);
     toast({ title: "Instalação Cadastrada!", description: `Cliente ${values.clientName} adicionado.` });
     form.reset();
+    setCreateDialogOpen(false);
   }
   
   function handleUpdate(values: Installation) {
@@ -153,6 +139,8 @@ export default function AdminPage() {
     if (!deletingInstallation) return;
     const updatedInstallations = installations.filter(inst => inst.id !== deletingInstallation.id)
     saveInstallations(updatedInstallations);
+    // Also remove the report from localStorage if it exists
+    localStorage.removeItem(`report_${deletingInstallation.clientName}`);
     toast({ title: "Instalação Excluída!", variant: "destructive", description: `O registro de ${deletingInstallation.clientName} foi removido.` });
     setDeletingInstallation(null);
   }
@@ -188,172 +176,176 @@ export default function AdminPage() {
     }
   }
 
-  const getBadgeVariant = (status: Installation["status"]) => {
-    switch(status) {
-        case "Concluído": return "default";
-        case "Cancelado": return "destructive";
-        case "Pendente":
-        default: return "secondary";
+  const getStatusProps = (status: Installation["status"]) => {
+    switch (status) {
+      case "Concluído":
+        return { variant: "default", icon: <CheckCircle className="h-4 w-4" />, className: "bg-green-600 hover:bg-green-700" };
+      case "Cancelado":
+        return { variant: "destructive", icon: <XCircle className="h-4 w-4" />, className: "" };
+      case "Pendente":
+      default:
+        return { variant: "secondary", icon: <Clock className="h-4 w-4" />, className: "" };
     }
-  }
+  };
 
 
   return (
     <>
-      <div className="flex min-h-screen w-full flex-col bg-background">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur-sm">
-          <div className="flex items-center gap-2">
+      <div className="flex min-h-screen w-full flex-col bg-muted/40">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-background/95 px-6 backdrop-blur-sm">
+          <div className="flex items-center gap-3">
             <SunMedium className="h-7 w-7 text-primary" />
             <h1 className="text-xl font-bold text-foreground">SolarView Pro - Admin</h1>
           </div>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setCreateDialogOpen}>
+            <DialogTrigger asChild>
+                <Button>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Nova Instalação
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[480px]">
+                 <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <User className="h-5 w-5" />
+                      Cadastrar Nova Instalação
+                    </DialogTitle>
+                    <DialogDescription>
+                      Insira os dados para criar um novo registro de instalação. O link para o instalador será gerado em seguida.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <Form {...form}>
+                    <form id="create-form" onSubmit={form.handleSubmit(handleCreate)} className="space-y-4 py-4">
+                        <FormField control={form.control} name="clientName" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Nome do Cliente</FormLabel>
+                            <FormControl><Input placeholder="Ex: Condomínio Sol Nascente" {...field} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}/>
+                        <FormField control={form.control} name="installationType" render={({ field }) => (
+                          <FormItem className="space-y-2">
+                              <FormLabel>Tipo de Instalação</FormLabel>
+                              <FormControl>
+                                <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-x-4">
+                                  <FormItem className="flex items-center space-x-2 space-y-0">
+                                    <FormControl><RadioGroupItem value="residencial" /></FormControl>
+                                    <FormLabel className="font-normal flex items-center gap-2"><Home size={16}/> Residencial</FormLabel>
+                                  </FormItem>
+                                  <FormItem className="flex items-center space-x-2 space-y-0">
+                                    <FormControl><RadioGroupItem value="comercial" /></FormControl>
+                                    <FormLabel className="font-normal flex items-center gap-2"><Building size={16}/> Comercial</FormLabel>
+                                  </FormItem>
+                                </RadioGroup>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                        )}/>
+                         <FormField control={form.control} name="address" render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Endereço</FormLabel>
+                              <FormControl><Input placeholder="Rua, Número, Bairro" {...field} /></FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}/>
+                        <div className="grid grid-cols-2 gap-4">
+                           <FormField control={form.control} name="city" render={({ field }) => (<FormItem><FormLabel>Cidade</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
+                           <FormField control={form.control} name="state" render={({ field }) => (<FormItem><FormLabel>Estado</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
+                        </div>
+                         <FormField control={form.control} name="zipCode" render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>CEP</FormLabel>
+                              <FormControl><Input placeholder="00000-000" {...field} /></FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}/>
+                         <FormField control={form.control} name="utilityCompany" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex items-center gap-2"><Bolt size={16}/> Concessionária</FormLabel>
+                            <FormControl><Input placeholder="Ex: CPFL, Enel" {...field} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}/>
+                    </form>
+                  </Form>
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button type="button" variant="outline">Cancelar</Button>
+                    </DialogClose>
+                    <Button type="submit" form="create-form">Salvar Instalação</Button>
+                  </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </header>
-        <main className="flex flex-1 flex-col gap-8 p-4 md:grid md:grid-cols-3 md:gap-8 lg:grid-cols-4">
-          <div className="lg:col-span-3 md:col-span-2">
-            <Card className="h-full">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5"/> Instalações Cadastradas</CardTitle>
-                <CardDescription>Visualize e gerencie as instalações pendentes e concluídas.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                  <Table>
-                      <TableHeader>
-                          <TableRow>
-                              <TableHead>Cliente</TableHead>
-                              <TableHead>Status</TableHead>
-                              <TableHead>Relatório</TableHead>
-                              <TableHead>Cidade/UF</TableHead>
-                              <TableHead className="text-right">Ações</TableHead>
-                          </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                          {installations.map((inst) => (
-                          <TableRow key={inst.id}>
-                              <TableCell className="font-medium">{inst.clientName}</TableCell>
-                              <TableCell>
-                                <Badge variant={getBadgeVariant(inst.status)}>{inst.status}</Badge>
-                              </TableCell>
-                               <TableCell>
-                                {inst.reportSubmitted ? (
-                                    <Badge variant="default" className="bg-green-600 hover:bg-green-700">Enviado</Badge>
-                                ) : (
-                                    <Badge variant="secondary">Pendente</Badge>
-                                )}
-                              </TableCell>
-                              <TableCell>{inst.city}/{inst.state}</TableCell>
-                              <TableCell className="text-right">
-                                  <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" className="h-8 w-8 p-0">
-                                            <span className="sr-only">Abrir menu</span>
-                                            <MoreHorizontal className="h-4 w-4" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                                         {inst.reportSubmitted && (
-                                            <DropdownMenuItem onClick={() => openReportDialog(inst.clientName)}>
-                                                <FileCheck2 className="mr-2 h-4 w-4" />
-                                                <span>Ver Relatório</span>
-                                            </DropdownMenuItem>
-                                        )}
-                                        <DropdownMenuItem onClick={() => generateLink(inst.clientName)}>
-                                            <LinkIcon className="mr-2 h-4 w-4" />
-                                            <span>Ver Link</span>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => openEditDialog(inst)}>
-                                            <Edit className="mr-2 h-4 w-4" />
-                                            <span>Editar</span>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => setDeletingInstallation(inst)}>
-                                            <Trash2 className="mr-2 h-4 w-4" />
-                                            <span>Excluir</span>
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                  </DropdownMenu>
-                              </TableCell>
-                          </TableRow>
-                          ))}
-                      </TableBody>
-                  </Table>
-              </CardContent>
-            </Card>
+
+        <main className="flex flex-1 flex-col gap-4 p-4 md:p-6">
+          <div className="flex items-center">
+            <h2 className="text-2xl font-semibold tracking-tight">Gerenciador de Instalações</h2>
           </div>
-          
-          <div className="lg:col-span-1 md:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Cadastrar Nova Instalação
-                </CardTitle>
-                <CardDescription>
-                  Insira os dados para criar um novo registro de instalação.
-                </CardDescription>
-              </CardHeader>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleCreate)}>
-                  <CardContent className="space-y-4">
-                    <FormField control={form.control} name="clientName" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nome do Cliente</FormLabel>
-                        <FormControl><Input placeholder="Ex: Condomínio Sol Nascente" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}/>
-                    <FormField control={form.control} name="installationType" render={({ field }) => (
-                      <FormItem className="space-y-2">
-                          <FormLabel>Tipo de Instalação</FormLabel>
-                          <FormControl>
-                            <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-x-4">
-                              <FormItem className="flex items-center space-x-2 space-y-0">
-                                <FormControl><RadioGroupItem value="residencial" /></FormControl>
-                                <FormLabel className="font-normal flex items-center gap-2"><Home size={16}/> Residencial</FormLabel>
-                              </FormItem>
-                              <FormItem className="flex items-center space-x-2 space-y-0">
-                                <FormControl><RadioGroupItem value="comercial" /></FormControl>
-                                <FormLabel className="font-normal flex items-center gap-2"><Building size={16}/> Comercial</FormLabel>
-                              </FormItem>
-                            </RadioGroup>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                    )}/>
-                     <FormField control={form.control} name="address" render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Endereço</FormLabel>
-                          <FormControl><Input placeholder="Rua, Número, Bairro" {...field} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}/>
-                    <div className="grid grid-cols-2 gap-4">
-                       <FormField control={form.control} name="city" render={({ field }) => (<FormItem><FormLabel>Cidade</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
-                       <FormField control={form.control} name="state" render={({ field }) => (<FormItem><FormLabel>Estado</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
-                    </div>
-                     <FormField control={form.control} name="zipCode" render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>CEP</FormLabel>
-                          <FormControl><Input placeholder="00000-000" {...field} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}/>
-                     <FormField control={form.control} name="utilityCompany" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2"><Bolt size={16}/> Concessionária</FormLabel>
-                        <FormControl><Input placeholder="Ex: CPFL, Enel" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}/>
+         
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {installations.map((inst) => {
+               const statusProps = getStatusProps(inst.status);
+               return (
+                <Card key={inst.id} className="flex flex-col">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="truncate pr-2">{inst.clientName}</span>
+                       <Badge variant={statusProps.variant} className={statusProps.className}>
+                          {statusProps.icon}
+                          <span>{inst.status}</span>
+                       </Badge>
+                    </CardTitle>
+                    <CardDescription className="flex items-center gap-2 pt-1">
+                      {inst.installationType === 'residencial' ? <Home size={14}/> : <Building size={14} />} 
+                      {inst.city} / {inst.state}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex-grow space-y-3">
+                     <div className="text-sm text-muted-foreground">
+                        <p className="flex items-center gap-2">
+                           <FileText size={14} /> Relatório do Instalador: 
+                           {inst.reportSubmitted ? (
+                                <Badge variant="default" className="bg-blue-600 hover:bg-blue-700">Enviado</Badge>
+                            ) : (
+                                <Badge variant="secondary">Pendente</Badge>
+                            )}
+                        </p>
+                     </div>
+                      <div className="text-sm text-muted-foreground">
+                        <p className="flex items-center gap-2">
+                           <Bolt size={14} /> Concessionária:
+                           <span className="font-medium text-foreground">{inst.utilityCompany}</span>
+                        </p>
+                     </div>
                   </CardContent>
-                  <CardFooter>
-                    <Button type="submit" className="w-full">
-                      Salvar Instalação
-                    </Button>
+                  <CardFooter className="flex-col items-stretch gap-2">
+                      {inst.reportSubmitted ? (
+                        <Button className="w-full" onClick={() => openReportDialog(inst.clientName)}>
+                          <FileCheck2 className="mr-2 h-4 w-4" /> Ver Relatório Completo
+                        </Button>
+                      ) : (
+                        <Button className="w-full" variant="outline" disabled>
+                          <FileCheck2 className="mr-2 h-4 w-4" /> Aguardando Relatório
+                        </Button>
+                      )}
+                      <div className="grid grid-cols-3 gap-2">
+                        <Button variant="secondary" onClick={() => generateLink(inst.clientName)}>
+                            <LinkIcon />
+                        </Button>
+                         <Button variant="secondary" onClick={() => openEditDialog(inst)}>
+                            <Edit />
+                        </Button>
+                         <Button variant="destructive" className="bg-destructive/20 text-destructive hover:bg-destructive/30" onClick={() => setDeletingInstallation(inst)}>
+                            <Trash2 />
+                        </Button>
+                      </div>
                   </CardFooter>
-                </form>
-              </Form>
-            </Card>
+                </Card>
+               )
+            })}
           </div>
+
         </main>
       </div>
       
@@ -370,7 +362,10 @@ export default function AdminPage() {
             <form id="edit-form" onSubmit={editForm.handleSubmit(handleUpdate)} className="space-y-4 py-4">
               <FormField control={editForm.control} name="clientName" render={({ field }) => (<FormItem><FormLabel>Nome</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={editForm.control} name="address" render={({ field }) => (<FormItem><FormLabel>Endereço</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-              {/* Add other fields as needed */}
+              <div className="grid grid-cols-2 gap-4">
+                  <FormField control={editForm.control} name="city" render={({ field }) => (<FormItem><FormLabel>Cidade</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
+                  <FormField control={editForm.control} name="state" render={({ field }) => (<FormItem><FormLabel>Estado</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
+              </div>
                <FormField control={editForm.control} name="status" render={({ field }) => (
                 <FormItem>
                     <FormLabel>Status</FormLabel>
@@ -400,7 +395,7 @@ export default function AdminPage() {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle className="text-destructive"/>Tem certeza?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Isso excluirá permanentemente a instalação de <span className="font-bold">{deletingInstallation?.clientName}</span>.
+              Esta ação não pode ser desfeita. Isso excluirá permanentemente a instalação de <span className="font-bold">{deletingInstallation?.clientName}</span> e seu respectivo relatório.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -545,3 +540,5 @@ export default function AdminPage() {
     </>
   );
 }
+
+    
