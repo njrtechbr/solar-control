@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { format } from 'date-fns';
+import { format, isPast, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Video, Bolt, Clock, CheckCircle, XCircle, FileText, Activity, FileJson, Files, Upload, ListChecks, Hourglass, Send, ThumbsUp, ThumbsDown } from "lucide-react";
 
@@ -52,6 +52,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 
 const eventSchema = z.object({
@@ -427,6 +428,9 @@ export default function InstallationDetailPage() {
       icon: CheckCircle 
     },
   ];
+
+  const isOverdue = installation.status === "Agendado" && installation.scheduledDate && isPast(new Date(installation.scheduledDate));
+  const overdueDays = installation.scheduledDate ? differenceInDays(new Date(), new Date(installation.scheduledDate)) : 0;
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -827,6 +831,15 @@ export default function InstallationDetailPage() {
                     <CardTitle>Agendamento</CardTitle>
                 </CardHeader>
                 <CardContent>
+                    {isOverdue && (
+                        <Alert variant="destructive" className="mb-4">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>Agendamento Atrasado</AlertTitle>
+                            <AlertDescription>
+                                Este agendamento está atrasado há {overdueDays} dia(s).
+                            </AlertDescription>
+                        </Alert>
+                    )}
                     {installation.scheduledDate ? (
                         <div className="space-y-2">
                             <div className="flex items-center gap-2 text-sm">

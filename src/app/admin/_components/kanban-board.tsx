@@ -15,13 +15,16 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, arrayMove } from '@dnd-kit/sortable';
 import { createPortal } from 'react-dom';
+import { differenceInDays, isPast } from 'date-fns';
 
 import { Installation, InstallationStatus, ProjectStatus, HomologationStatus } from '../page';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { KanbanColumn } from './kanban-column';
 import { KanbanCard } from './kanban-card';
 import { Badge } from '@/components/ui/badge';
-import { FileCheck2, Home, Building, CheckCircle, Bolt, Hourglass } from 'lucide-react';
+import { FileCheck2, Home, Building, CheckCircle, Bolt, Hourglass, AlertTriangle } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
 
 export type KanbanColumnType = {
   id: string;
@@ -118,6 +121,9 @@ export function KanbanBoard({ installations, columns, onItemMove, statusType }: 
     }
   }
 
+  const isOverdue = activeInstallation?.status === "Agendado" && activeInstallation?.scheduledDate && isPast(new Date(activeInstallation.scheduledDate));
+  const overdueDays = activeInstallation?.scheduledDate ? differenceInDays(new Date(), new Date(activeInstallation.scheduledDate)) : 0;
+
   return (
     <DndContext
       sensors={sensors}
@@ -141,7 +147,10 @@ export function KanbanBoard({ installations, columns, onItemMove, statusType }: 
       {isMounted && createPortal(
         <DragOverlay>
           {activeInstallation && (
-             <Card className="w-full opacity-75">
+             <Card className={cn(
+                "w-full opacity-75",
+                isOverdue && "border-destructive"
+              )}>
                 <CardHeader className="p-4">
                     <CardTitle className="text-base truncate">{activeInstallation.clientName}</CardTitle>
                     <CardDescription className="flex items-center gap-1 text-xs">
@@ -150,6 +159,12 @@ export function KanbanBoard({ installations, columns, onItemMove, statusType }: 
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="p-4 pt-0 text-xs text-muted-foreground space-y-2">
+                     {isOverdue && (
+                      <div className="flex items-center gap-2 text-destructive">
+                        <AlertTriangle size={14} />
+                        Atrasado há {overdueDays} dia(s)
+                      </div>
+                    )}
                      <div className="flex items-center gap-2">
                         <FileCheck2 size={14} /> Projeto:
                         <span className="font-medium text-foreground">{activeInstallation.projectStatus}</span>
