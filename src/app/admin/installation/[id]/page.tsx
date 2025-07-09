@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Camera, Video, Bolt, Clock, CheckCircle, XCircle, FileText, Activity, FileJson, Files } from "lucide-react";
+import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Camera, Video, Bolt, Clock, CheckCircle, XCircle, FileText, Activity, FileJson, Files, Upload } from "lucide-react";
 
 import { type Installation } from "@/app/admin/page";
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { generateFinalReport, type GenerateFinalReportInput } from "@/ai/flows/generate-report-flow";
@@ -73,6 +72,11 @@ const finalReportSchema = z.object({
 });
 type FinalReportValues = z.infer<typeof finalReportSchema>;
 
+const documentSchema = z.object({
+    files: z.any().refine(files => files?.length > 0, "Selecione pelo menos um arquivo."),
+});
+type DocumentValues = z.infer<typeof documentSchema>;
+
 const EVENT_TYPES = [
   { value: "Agendamento", label: "Agendamento", icon: CalendarIcon },
   { value: "Problema", label: "Problema Encontrado", icon: AlertCircle },
@@ -89,6 +93,7 @@ export default function InstallationDetailPage() {
   const [installation, setInstallation] = useState<Installation | null>(null);
   const [isEventDialogOpen, setEventDialogOpen] = useState(false);
   const [isScheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [isDocumentDialogOpen, setDocumentDialogOpen] = useState(false);
   const [installerReport, setInstallerReport] = useState<any | null>(null);
   const [generatedFinalReport, setGeneratedFinalReport] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -125,7 +130,11 @@ export default function InstallationDetailPage() {
         notes: "",
     }
   });
-  
+
+  const documentForm = useForm<DocumentValues>({
+    resolver: zodResolver(documentSchema),
+  });
+
   useEffect(() => {
     if (installation?.scheduledDate) {
         scheduleForm.reset({
@@ -240,6 +249,30 @@ export default function InstallationDetailPage() {
     }
   }
 
+  async function handleAddDocument(values: DocumentValues) {
+    if (!installation) return;
+    let newDocuments: { name: string, dataUrl: string, type: string, date: string }[] = [];
+    if (values.files && values.files.length > 0) {
+        for (const file of Array.from(values.files as FileList)) {
+            const dataUrl = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = error => reject(error);
+            });
+            newDocuments.push({ name: file.name, dataUrl, type: file.type, date: new Date().toISOString() });
+        }
+    }
+    const updatedInstallation = {
+        ...installation,
+        documents: [...(installation.documents || []), ...newDocuments],
+    };
+    updateInstallation(updatedInstallation);
+    toast({ title: "Documento(s) Adicionado(s)!", description: `${newDocuments.length} arquivo(s) foram anexados à instalação.` });
+    documentForm.reset();
+    setDocumentDialogOpen(false);
+  }
+
   const copyToClipboard = (text: string, message: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: message });
@@ -281,6 +314,14 @@ export default function InstallationDetailPage() {
   const statusProps = getStatusProps(installation.status);
   
   const allAttachments = [
+    ...(installation.documents?.map(doc => ({
+      id: `doc_${doc.name}_${doc.date}`,
+      name: doc.name,
+      dataUrl: doc.dataUrl,
+      type: doc.dataUrl.startsWith('data:image') ? 'image' : (doc.dataUrl.startsWith('data:video') ? 'video' : 'file'),
+      date: doc.date,
+      source: 'Documento do Projeto',
+    })) || []),
     ...(installerReport?.photo_uploads?.filter((p: any) => p.dataUrl).map((p: any, index: number) => ({
       id: `installer_photo_${index}`,
       name: p.annotation || `Foto do Instalador ${index + 1}`,
@@ -327,8 +368,8 @@ export default function InstallationDetailPage() {
              <Tabs defaultValue="overview" className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="overview"><Activity className="mr-2 h-4 w-4"/>Visão Geral</TabsTrigger>
-                    <TabsTrigger value="attachments"><Files className="mr-2 h-4 w-4"/>Anexos da Instalação</TabsTrigger>
-                    <TabsTrigger value="data"><FileJson className="mr-2 h-4 w-4"/>Dados do Formulário</TabsTrigger>
+                    <TabsTrigger value="attachments"><Files className="mr-2 h-4 w-4"/>Anexos</TabsTrigger>
+                    <TabsTrigger value="data"><FileJson className="mr-2 h-4 w-4"/>Dados do Relatório</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview">
@@ -534,7 +575,7 @@ export default function InstallationDetailPage() {
                                                         {att.name}
                                                     </a>
                                                     <p className="text-muted-foreground">{att.source}</p>
-                                                    <p className="text-xs text-muted-foreground">{format(new Date(att.date), "dd/MM/yyyy 'às' HH:mm")}</p>
+                                                    <p className="text-xs text-muted-foreground">{format(new Date(att.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
                                                 </div>
                                             </div>
                                         ))}
@@ -574,7 +615,7 @@ export default function InstallationDetailPage() {
                                                              <div key={index} className="p-2 border rounded-md bg-muted/50">
                                                                  <p><b>String {value.findIndex(originalItem => originalItem === item) + 1}:</b></p>
                                                                  <p>Tensão: {item.voltage || 'N/A'} V</p>
-                                                                 <p>Placas: {item.plates || 'N/A'}</p>
+                                                                 <p>Placas: {item.plates || 'N/A'} V</p>
                                                              </div>
                                                            ))}
                                                            </div>
@@ -698,8 +739,65 @@ export default function InstallationDetailPage() {
                     </Dialog>
                 </CardFooter>
             </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Documentos do Projeto</CardTitle>
+                    <CardDescription>Anexe arquivos importantes como PDFs, projetos, etc.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {installation.documents && installation.documents.length > 0 ? (
+                        <ScrollArea className="h-24">
+                            <div className="space-y-2 text-sm">
+                                {installation.documents.map((doc, idx) => (
+                                     <a key={idx} href={doc.dataUrl} download={doc.name} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-2 truncate">
+                                        <Paperclip className="h-4 w-4 flex-shrink-0" /> <span className="truncate">{doc.name}</span>
+                                    </a>
+                                ))}
+                            </div>
+                        </ScrollArea>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">Nenhum documento anexado.</p>
+                    )}
+                </CardContent>
+                <CardFooter>
+                     <Dialog open={isDocumentDialogOpen} onOpenChange={setDocumentDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" className="w-full">
+                                <Upload className="mr-2 h-4 w-4" />
+                                Adicionar Documento
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Anexar Documentos</DialogTitle>
+                                <DialogDescription>Selecione os arquivos para anexar a esta instalação.</DialogDescription>
+                            </DialogHeader>
+                             <Form {...documentForm}>
+                                <form id="document-form" onSubmit={documentForm.handleSubmit(handleAddDocument)} className="space-y-4 py-4">
+                                     <FormField control={documentForm.control} name="files" render={({ field: { onChange, ...field }}) => (
+                                        <FormItem>
+                                            <FormLabel>Arquivos</FormLabel>
+                                            <FormControl>
+                                                <Input type="file" multiple onChange={(e) => onChange(e.target.files)} {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}/>
+                                </form>
+                            </Form>
+                            <DialogFooter>
+                                <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                                <Button type="submit" form="document-form">Salvar Documentos</Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </CardFooter>
+            </Card>
         </div>
       </main>
     </div>
   );
 }
+
+    

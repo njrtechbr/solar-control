@@ -72,6 +72,12 @@ const installationSchema = z.object({
     description: z.string(),
     attachments: z.array(z.object({ name: z.string(), dataUrl: z.string() })).optional(),
   })).default([]),
+  documents: z.array(z.object({
+    name: z.string(),
+    dataUrl: z.string(),
+    type: z.string(),
+    date: z.string(),
+  })).default([]),
 });
 
 export type Installation = z.infer<typeof installationSchema>;
@@ -79,16 +85,16 @@ export type Installation = z.infer<typeof installationSchema>;
 const initialInstallations: Installation[] = [
     { id: 1, clientName: "Condomínio Sol Nascente", address: "Rua A, 123", city: "Campinas", state: "SP", zipCode: "13000-001", installationType: "comercial", utilityCompany: "CPFL", status: "Agendado", reportSubmitted: false, scheduledDate: new Date(Date.now() + 86400000 * 3).toISOString(), events: [
       { id: '1', date: new Date(Date.now() - 86400000 * 2).toISOString(), type: 'Agendamento', description: 'Visita técnica agendada com o cliente.'}
-    ] },
+    ], documents: [] },
     { id: 2, clientName: "Maria Silva", address: "Rua B, 456", city: "São Paulo", state: "SP", zipCode: "01000-002", installationType: "residencial", utilityCompany: "Enel", status: "Concluído", reportSubmitted: true, events: [
       { id: '1', date: new Date(Date.now() - 86400000 * 5).toISOString(), type: 'Agendamento', description: 'Instalação agendada.'},
       { id: '2', date: new Date(Date.now() - 86400000 * 3).toISOString(), type: 'Problema', description: 'Atraso na entrega do inversor.'},
       { id: '3', date: new Date(Date.now() - 86400000 * 1).toISOString(), type: 'Conclusão', description: 'Instalação finalizada e comissionada com sucesso.'}
-    ]},
+    ], documents: []},
     { id: 3, clientName: "Supermercado Economia", address: "Av. C, 789", city: "Valinhos", state: "SP", zipCode: "13270-003", installationType: "comercial", utilityCompany: "CPFL", status: "Cancelado", reportSubmitted: false, events: [
       { id: '1', date: new Date(Date.now() - 86400000 * 10).toISOString(), type: 'Nota', description: 'Cliente solicitou cancelamento por motivos financeiros.'}
-    ] },
-    { id: 4, clientName: "João Pereira", address: "Rua D, 101", city: "Jundiaí", state: "SP", zipCode: "13201-004", installationType: "residencial", utilityCompany: "CPFL", status: "Pendente", reportSubmitted: false, events: [] },
+    ], documents: [] },
+    { id: 4, clientName: "João Pereira", address: "Rua D, 101", city: "Jundiaí", state: "SP", zipCode: "13201-004", installationType: "residencial", utilityCompany: "CPFL", status: "Pendente", reportSubmitted: false, events: [], documents: [] },
 ];
 
 const createSampleReport = () => {
@@ -161,6 +167,7 @@ export default function AdminPage() {
       installationType: "residencial",
       status: "Pendente",
       events: [],
+      documents: [],
     },
   });
   
@@ -169,7 +176,7 @@ export default function AdminPage() {
   });
 
   function handleCreate(values: Installation) {
-    const newInstallation = { ...values, id: Date.now(), reportSubmitted: false, events: [], scheduledDate: undefined };
+    const newInstallation = { ...values, id: Date.now(), reportSubmitted: false, events: [], documents: [], scheduledDate: undefined };
     saveInstallations([...installations, newInstallation]);
     toast({ title: "Instalação Cadastrada!", description: `Cliente ${values.clientName} adicionado.` });
     form.reset();
