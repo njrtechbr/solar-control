@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Camera, Video, Bolt, Clock, CheckCircle, XCircle, FileText, Activity, FileJson, Files, Upload } from "lucide-react";
+import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Video, Bolt, Clock, CheckCircle, XCircle, FileText, Activity, FileJson, Files, Upload, Camera } from "lucide-react";
 
 import { type Installation } from "@/app/admin/page";
 import { Button } from "@/components/ui/button";
@@ -621,7 +621,7 @@ export default function InstallationDetailPage() {
                                                              <div key={index} className="p-2 border rounded-md bg-muted/50">
                                                                  <p><b>String {value.findIndex(originalItem => originalItem === item) + 1}:</b></p>
                                                                  <p>Tensão: {item.voltage || 'N/A'} V</p>
-                                                                 <p>Placas: {item.plates || 'N/A'} V</p>
+                                                                 <p>Placas: {item.plates || 'N/A'}</p>
                                                              </div>
                                                            ))}
                                                            </div>
@@ -805,3 +805,5 @@ export default function InstallationDetailPage() {
     </div>
   );
 }
+
+    
