@@ -51,6 +51,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 
 const eventSchema = z.object({
@@ -468,64 +469,97 @@ export default function InstallationDetailPage() {
                     <ListChecks className="mr-2 h-4 w-4" /> Gerenciar Processo
                 </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>Gerenciar Processo com a Cia. de Energia</DialogTitle>
+                    <DialogDescription>Atualize o andamento das etapas principais.</DialogDescription>
                 </DialogHeader>
                 <Form {...processForm}>
-                    <form id="process-form" className="space-y-4" onSubmit={processForm.handleSubmit(handleProcessUpdate)}>
-                        <FormField control={processForm.control} name="protocolNumber" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Nº do Protocolo</FormLabel>
-                                <FormControl><Input placeholder="Número do protocolo" {...field} value={field.value ?? ''} /></FormControl>
-                            </FormItem>
-                        )}/>
-                        <FormField control={processForm.control} name="protocolDate" render={({ field }) => (
-                            <FormItem className="flex flex-col">
-                              <FormLabel>Data do Protocolo</FormLabel>
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <FormControl>
-                                    <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                      {field.value ? format(field.value, 'PPP', { locale: ptBR }) : <span>Escolha uma data</span>}
-                                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                    </Button>
-                                  </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                  <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                                </PopoverContent>
-                              </Popover>
-                            </FormItem>
-                          )}/>
-                        <FormField control={processForm.control} name="projectStatus" render={({ field }) => (
-                            <FormItem><FormLabel>Status do Projeto</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="Não Enviado">Não Enviado</SelectItem>
-                                        <SelectItem value="Enviado para Análise">Enviado para Análise</SelectItem>
-                                        <SelectItem value="Aprovado">Aprovado</SelectItem>
-                                        <SelectItem value="Reprovado">Reprovado</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </FormItem>
-                        )}/>
-                        <FormField control={processForm.control} name="homologationStatus" render={({ field }) => (
-                            <FormItem><FormLabel>Status da Homologação</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="Pendente">Pendente</SelectItem>
-                                        <SelectItem value="Aprovado">Aprovado</SelectItem>
-                                        <SelectItem value="Reprovado">Reprovado</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </FormItem>
-                        )}/>
+                    <form id="process-form" className="space-y-2" onSubmit={processForm.handleSubmit(handleProcessUpdate)}>
+                       <Accordion type="multiple" defaultValue={['protocolo']} className="w-full">
+                            <AccordionItem value="protocolo">
+                                <AccordionTrigger>
+                                  <div className="flex items-center gap-3">
+                                    <FileText className="h-5 w-5 text-primary" />
+                                    <span className="font-semibold">Etapa 1: Protocolo</span>
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="pt-4 space-y-4">
+                                    <FormField control={processForm.control} name="protocolNumber" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Nº do Protocolo</FormLabel>
+                                            <FormControl><Input placeholder="Número do protocolo" {...field} value={field.value ?? ''} /></FormControl>
+                                        </FormItem>
+                                    )}/>
+                                    <FormField control={processForm.control} name="protocolDate" render={({ field }) => (
+                                        <FormItem className="flex flex-col">
+                                          <FormLabel>Data do Protocolo</FormLabel>
+                                          <Popover>
+                                            <PopoverTrigger asChild>
+                                              <FormControl>
+                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                  {field.value ? format(field.value, 'PPP', { locale: ptBR }) : <span>Escolha uma data</span>}
+                                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                </Button>
+                                              </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                              <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                            </PopoverContent>
+                                          </Popover>
+                                        </FormItem>
+                                      )}/>
+                                </AccordionContent>
+                            </AccordionItem>
+                             <AccordionItem value="projeto">
+                                <AccordionTrigger>
+                                  <div className="flex items-center gap-3">
+                                    <FileCheck2 className="h-5 w-5 text-primary" />
+                                    <span className="font-semibold">Etapa 2: Projeto</span>
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="pt-4">
+                                     <FormField control={processForm.control} name="projectStatus" render={({ field }) => (
+                                        <FormItem><FormLabel>Status do Projeto</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="Não Enviado">Não Enviado</SelectItem>
+                                                    <SelectItem value="Enviado para Análise">Enviado para Análise</SelectItem>
+                                                    <SelectItem value="Aprovado">Aprovado</SelectItem>
+                                                    <SelectItem value="Reprovado">Reprovado</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </FormItem>
+                                    )}/>
+                                </AccordionContent>
+                            </AccordionItem>
+                             <AccordionItem value="homologacao">
+                                <AccordionTrigger>
+                                  <div className="flex items-center gap-3">
+                                    <CheckCircle className="h-5 w-5 text-primary" />
+                                    <span className="font-semibold">Etapa 3: Homologação</span>
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="pt-4">
+                                    <FormField control={processForm.control} name="homologationStatus" render={({ field }) => (
+                                        <FormItem><FormLabel>Status da Homologação</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="Pendente">Pendente</SelectItem>
+                                                    <SelectItem value="Aprovado">Aprovado</SelectItem>
+                                                    <SelectItem value="Reprovado">Reprovado</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </FormItem>
+                                    )}/>
+                                </AccordionContent>
+                            </AccordionItem>
+                       </Accordion>
                     </form>
                 </Form>
-                <DialogFooter>
+                <DialogFooter className="pt-4">
                     <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
                     <Button type="submit" form="process-form">Salvar Alterações</Button>
                 </DialogFooter>
