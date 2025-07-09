@@ -119,7 +119,7 @@ export default function StatusPage() {
               <CardDescription>
                 Este é o status atualizado do seu projeto de energia solar.
                 <br />
-                Local: {installation.city} - {installation.state}
+                Nº da Instalação: {installation.installationId} | Local: {installation.city} - {installation.state}
               </CardDescription>
             </CardHeader>
           </Card>
