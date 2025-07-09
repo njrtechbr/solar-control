@@ -16,7 +16,7 @@ const StatusIcon: React.FC<{ status: string }> = ({ status }) => {
   const commonClasses = "h-5 w-5";
   switch (status) {
     case "completed": return <CheckCircle className={cn(commonClasses, "text-primary")} />;
-    case "in_progress": return <Send className={cn(commonClasses, "text-blue-500")} />;
+    case "in_progress": return <Send className={cn(commonClasses, "text-blue-500 animate-pulse")} />;
     case "error": return <XCircle className={cn(commonClasses, "text-destructive")} />;
     default: return <Hourglass className={cn(commonClasses, "text-muted-foreground")} />;
   }
@@ -77,31 +77,26 @@ export default function StatusPage() {
     {
       name: "Protocolo Aberto",
       status: installation.protocolNumber ? "completed" : "pending",
-      Icon: FileText,
-      description: installation.protocolNumber ? `Protocolo Nº ${installation.protocolNumber} aberto em ${format(new Date(installation.protocolDate!), "dd/MM/yyyy")}` : "Aguardando abertura do protocolo",
+      description: installation.protocolDate ? `Protocolo aberto em ${format(new Date(installation.protocolDate), "dd/MM/yyyy")}` : "Aguardando abertura do protocolo",
     },
     {
       name: "Análise do Projeto",
       status: installation.projectStatus === "Aprovado" ? "completed" : (installation.projectStatus === "Reprovado" ? "error" : (installation.projectStatus === "Não Enviado" ? "pending" : "in_progress")),
-      Icon: installation.projectStatus === "Aprovado" ? ThumbsUp : (installation.projectStatus === "Reprovado" ? ThumbsDown : (installation.projectStatus === "Não Enviado" ? Hourglass : Send)),
       description: `Status do projeto: ${installation.projectStatus}`,
     },
     {
       name: "Agendamento da Instalação",
       status: installation.scheduledDate ? "completed" : "pending",
-      Icon: CalendarIcon,
       description: installation.scheduledDate ? `Agendado para ${format(new Date(installation.scheduledDate), "dd/MM/yyyy 'às' HH:mm")}` : "Aguardando aprovação do projeto",
     },
     {
       name: "Execução da Instalação",
       status: installation.status === "Concluído" ? "completed" : (installation.status === "Cancelado" ? "error" : (installation.status === "Em Andamento" ? "in_progress" : "pending")),
-      Icon: installation.status === "Concluído" ? CheckCircle : (installation.status === "Cancelado" ? XCircle : (installation.status === "Em Andamento" ? Bolt : Hourglass)),
       description: `Status da instalação: ${installation.status}`,
     },
     {
       name: "Homologação",
       status: installation.homologationStatus === "Aprovado" ? "completed" : (installation.homologationStatus === "Reprovado" ? "error" : "pending"),
-      Icon: installation.homologationStatus === "Aprovado" ? ThumbsUp : (installation.homologationStatus === "Reprovado" ? ThumbsDown : Hourglass),
       description: `Status da homologação: ${installation.homologationStatus}`,
     },
   ];
@@ -156,7 +151,7 @@ export default function StatusPage() {
             </CardHeader>
             <CardContent>
                  <div className="space-y-6 relative pl-6 before:absolute before:inset-y-0 before:w-px before:bg-border before:left-0 before:ml-3">
-                    {installation.events.length > 0 ? (
+                    {installation.events && installation.events.filter(e => e.type !== 'Nota').length > 0 ? (
                         installation.events
                             .filter(event => event.type !== 'Nota') // Don't show internal notes
                             .slice(0, 5) // Show last 5 relevant events
@@ -164,7 +159,7 @@ export default function StatusPage() {
                             <div key={event.id} className="relative">
                                 <div className="absolute -left-6 top-1.5 h-3 w-3 bg-muted rounded-full border-2 border-background" />
                                 <div className="pl-6">
-                                    <p className="text-xs text-muted-foreground">{format(new Date(event.date), "dd/MM/yy 'às' HH:mm")}</p>
+                                    <p className="text-xs text-muted-foreground">{format(new Date(event.date), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}</p>
                                     <p className="text-sm">{event.description}</p>
                                 </div>
                             </div>
