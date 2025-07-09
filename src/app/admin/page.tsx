@@ -62,6 +62,12 @@ const installationSchema = z.object({
     required_error: "Selecione o tipo de instalação.",
   }),
   utilityCompany: z.string().min(2, "O nome da concessionária é obrigatório."),
+  // New fields for utility company process
+  protocolNumber: z.string().optional(),
+  protocolDate: z.string().optional(),
+  projectStatus: z.enum(["Não Enviado", "Enviado para Análise", "Aprovado", "Reprovado"]).default("Não Enviado"),
+  homologationStatus: z.enum(["Pendente", "Aprovado", "Reprovado"]).default("Pendente"),
+
   status: z.enum(["Pendente", "Agendado", "Em Andamento", "Concluído", "Cancelado"]).default("Pendente"),
   reportSubmitted: z.boolean().default(false),
   scheduledDate: z.string().optional(),
@@ -91,15 +97,22 @@ const initialInstallations: Installation[] = [
       state: "SP", 
       zipCode: "13000-001", 
       installationType: "comercial", 
-      utilityCompany: "CPFL", 
+      utilityCompany: "CPFL",
+      protocolNumber: "987654321",
+      protocolDate: new Date(Date.now() - 86400000 * 10).toISOString(),
+      projectStatus: "Aprovado",
+      homologationStatus: "Pendente",
       status: "Agendado", 
       reportSubmitted: false, 
       scheduledDate: new Date(Date.now() + 86400000 * 3).toISOString(), 
       events: [
-        { id: '1', date: new Date(Date.now() - 86400000 * 2).toISOString(), type: 'Agendamento', description: 'Visita técnica agendada com o síndico para a próxima semana.'}
+        { id: '1', date: new Date(Date.now() - 86400000 * 10).toISOString(), type: 'Protocolo', description: 'Protocolo 987654321 aberto na CPFL.'},
+        { id: '2', date: new Date(Date.now() - 86400000 * 9).toISOString(), type: 'Projeto', description: 'Projeto enviado para análise da concessionária.'},
+        { id: '3', date: new Date(Date.now() - 86400000 * 4).toISOString(), type: 'Projeto', description: 'Projeto aprovado pela concessionária.'},
+        { id: '4', date: new Date(Date.now() - 86400000 * 2).toISOString(), type: 'Agendamento', description: 'Visita técnica agendada com o síndico para a próxima semana.'}
       ], 
       documents: [
-        { name: 'projeto_preliminar.pdf', dataUrl: '#', type: 'application/pdf', date: new Date(Date.now() - 86400000 * 3).toISOString() }
+        { name: 'projeto_preliminar.pdf', dataUrl: '#', type: 'application/pdf', date: new Date(Date.now() - 86400000 * 9).toISOString() }
       ] 
     },
     { 
@@ -110,17 +123,25 @@ const initialInstallations: Installation[] = [
       state: "SP", 
       zipCode: "01000-002", 
       installationType: "residencial", 
-      utilityCompany: "Enel", 
+      utilityCompany: "Enel",
+      protocolNumber: "123456789",
+      protocolDate: new Date(Date.now() - 86400000 * 15).toISOString(),
+      projectStatus: "Aprovado",
+      homologationStatus: "Aprovado",
       status: "Concluído", 
       reportSubmitted: true, 
       events: [
-        { id: '1', date: new Date(Date.now() - 86400000 * 5).toISOString(), type: 'Agendamento', description: 'Instalação agendada.'},
-        { id: '2', date: new Date(Date.now() - 86400000 * 3).toISOString(), type: 'Problema', description: 'Atraso na entrega do inversor. Resolvido com o fornecedor no mesmo dia.', attachments: [{ name: 'nota_fiscal_inversor.pdf', dataUrl: '#'}]},
-        { id: '3', date: new Date(Date.now() - 86400000 * 1).toISOString(), type: 'Conclusão', description: 'Instalação finalizada e comissionada com sucesso.'}
+        { id: '1', date: new Date(Date.now() - 86400000 * 15).toISOString(), type: 'Protocolo', description: 'Protocolo 123456789 aberto na Enel.'},
+        { id: '2', date: new Date(Date.now() - 86400000 * 14).toISOString(), type: 'Projeto', description: 'Projeto enviado para análise.'},
+        { id: '3', date: new Date(Date.now() - 86400000 * 8).toISOString(), type: 'Projeto', description: 'Projeto Aprovado.'},
+        { id: '4', date: new Date(Date.now() - 86400000 * 5).toISOString(), type: 'Agendamento', description: 'Instalação agendada.'},
+        { id: '5', date: new Date(Date.now() - 86400000 * 3).toISOString(), type: 'Problema', description: 'Atraso na entrega do inversor. Resolvido com o fornecedor no mesmo dia.', attachments: [{ name: 'nota_fiscal_inversor.pdf', dataUrl: '#'}]},
+        { id: '6', date: new Date(Date.now() - 86400000 * 1).toISOString(), type: 'Conclusão', description: 'Instalação finalizada e comissionada com sucesso.'},
+        { id: '7', date: new Date(Date.now() - 86400000 * 0).toISOString(), type: 'Homologação', description: 'Instalação homologada pela concessionária.'}
       ], 
       documents: [
-         { name: 'art_assinada.pdf', dataUrl: '#', type: 'application/pdf', date: new Date(Date.now() - 86400000 * 6).toISOString() },
-         { name: 'contrato_servico.pdf', dataUrl: '#', type: 'application/pdf', date: new Date(Date.now() - 86400000 * 7).toISOString() }
+         { name: 'art_assinada.pdf', dataUrl: '#', type: 'application/pdf', date: new Date(Date.now() - 86400000 * 14).toISOString() },
+         { name: 'contrato_servico.pdf', dataUrl: '#', type: 'application/pdf', date: new Date(Date.now() - 86400000 * 16).toISOString() }
       ]
     },
     { 
@@ -131,7 +152,11 @@ const initialInstallations: Installation[] = [
       state: "SP", 
       zipCode: "13270-003", 
       installationType: "comercial", 
-      utilityCompany: "CPFL", 
+      utilityCompany: "CPFL",
+      protocolNumber: "555555555",
+      protocolDate: new Date(Date.now() - 86400000 * 12).toISOString(),
+      projectStatus: "Não Enviado",
+      homologationStatus: "Pendente",
       status: "Cancelado", 
       reportSubmitted: false, 
       events: [
@@ -147,7 +172,11 @@ const initialInstallations: Installation[] = [
       state: "SP", 
       zipCode: "13201-004", 
       installationType: "residencial", 
-      utilityCompany: "CPFL", 
+      utilityCompany: "CPFL",
+      protocolNumber: "",
+      protocolDate: "",
+      projectStatus: "Não Enviado",
+      homologationStatus: "Pendente",
       status: "Pendente", 
       reportSubmitted: false, 
       events: [], 
@@ -202,8 +231,12 @@ export default function AdminPage() {
 
   useEffect(() => {
     const savedInstallations = localStorage.getItem('installations');
-    const loadedInstallations = savedInstallations ? JSON.parse(savedInstallations) : initialInstallations;
+    if (!savedInstallations) {
+        localStorage.setItem('installations', JSON.stringify(initialInstallations));
+    }
     
+    const loadedInstallations = JSON.parse(localStorage.getItem('installations') || '[]') as Installation[];
+
     const sampleReportKey = 'report_Maria Silva';
     if (!localStorage.getItem(sampleReportKey)) {
         localStorage.setItem(sampleReportKey, JSON.stringify(createSampleReport()));
@@ -232,8 +265,11 @@ export default function AdminPage() {
       state: "",
       zipCode: "",
       utilityCompany: "",
+      protocolNumber: "",
       installationType: "residencial",
       status: "Pendente",
+      projectStatus: "Não Enviado",
+      homologationStatus: "Pendente",
       events: [],
       documents: [],
     },
@@ -245,6 +281,18 @@ export default function AdminPage() {
 
   function handleCreate(values: Installation) {
     const newInstallation = { ...values, id: Date.now(), reportSubmitted: false, events: [], documents: [], scheduledDate: undefined };
+    
+    if (values.protocolNumber) {
+        newInstallation.protocolDate = new Date().toISOString();
+        newInstallation.events.push({
+            id: new Date().toISOString(),
+            date: new Date().toISOString(),
+            type: "Protocolo",
+            description: `Protocolo ${values.protocolNumber} aberto na ${values.utilityCompany}.`,
+            attachments: [],
+        });
+    }
+
     saveInstallations([...installations, newInstallation]);
     toast({ title: "Instalação Cadastrada!", description: `Cliente ${values.clientName} adicionado.` });
     form.reset();
@@ -378,6 +426,13 @@ export default function AdminPage() {
                             <FormMessage />
                           </FormItem>
                         )}/>
+                        <FormField control={form.control} name="protocolNumber" render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Nº do Protocolo (Opcional)</FormLabel>
+                              <FormControl><Input placeholder="Protocolo da Cia. de Energia" {...field} /></FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}/>
                     </form>
                   </Form>
                   <DialogFooter>
@@ -428,6 +483,12 @@ export default function AdminPage() {
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                            <Bolt size={14} /> Concessionária:
                            <span className="font-medium text-foreground">{inst.utilityCompany}</span>
+                        </div>
+                     </div>
+                      <div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                           <FileCheck2 size={14} /> Projeto:
+                           <span className="font-medium text-foreground">{inst.projectStatus}</span>
                         </div>
                      </div>
                   </CardContent>

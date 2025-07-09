@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Video, Bolt, Clock, CheckCircle, XCircle, FileText, Activity, FileJson, Files, Upload, Camera } from "lucide-react";
+import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Video, Bolt, Clock, CheckCircle, XCircle, FileText, Activity, FileJson, Files, Upload, Camera, ListChecks } from "lucide-react";
 
 import { type Installation } from "@/app/admin/page";
 import { Button } from "@/components/ui/button";
@@ -77,12 +77,24 @@ const documentSchema = z.object({
 });
 type DocumentValues = z.infer<typeof documentSchema>;
 
+const processSchema = z.object({
+    protocolNumber: z.string().optional(),
+    protocolDate: z.date().optional(),
+    projectStatus: z.enum(["Não Enviado", "Enviado para Análise", "Aprovado", "Reprovado"]),
+    homologationStatus: z.enum(["Pendente", "Aprovado", "Reprovado"]),
+});
+type ProcessValues = z.infer<typeof processSchema>;
+
+
 const EVENT_TYPES = [
   { value: "Agendamento", label: "Agendamento", icon: CalendarIcon },
   { value: "Problema", label: "Problema Encontrado", icon: AlertCircle },
   { value: "Nota", label: "Nota Interna", icon: MessageSquare },
   { value: "Vistoria", label: "Vistoria Técnica", icon: Wrench },
   { value: "Conclusão", label: "Etapa Concluída", icon: Check },
+  { value: "Protocolo", label: "Protocolo", icon: FileText },
+  { value: "Projeto", label: "Projeto", icon: FileCheck2 },
+  { value: "Homologação", label: "Homologação", icon: CheckCircle },
 ];
 
 export default function InstallationDetailPage() {
@@ -94,6 +106,7 @@ export default function InstallationDetailPage() {
   const [isEventDialogOpen, setEventDialogOpen] = useState(false);
   const [isScheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [isDocumentDialogOpen, setDocumentDialogOpen] = useState(false);
+  const [isProcessDialogOpen, setProcessDialogOpen] = useState(false);
   const [installerReport, setInstallerReport] = useState<any | null>(null);
   const [generatedFinalReport, setGeneratedFinalReport] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -130,38 +143,51 @@ export default function InstallationDetailPage() {
         notes: "",
     }
   });
+  
+  const processForm = useForm<ProcessValues>({
+    resolver: zodResolver(processSchema),
+    defaultValues: {
+        protocolNumber: "",
+        protocolDate: undefined,
+        projectStatus: "Não Enviado",
+        homologationStatus: "Pendente",
+    }
+  });
 
   const documentForm = useForm<DocumentValues>({
     resolver: zodResolver(documentSchema),
   });
 
   useEffect(() => {
-    if (installation?.scheduledDate) {
+    if (installation) {
         scheduleForm.reset({
-            date: new Date(installation.scheduledDate),
-            time: format(new Date(installation.scheduledDate), 'HH:mm'),
+            date: installation.scheduledDate ? new Date(installation.scheduledDate) : undefined,
+            time: installation.scheduledDate ? format(new Date(installation.scheduledDate), 'HH:mm') : "",
             notes: ""
         });
-    } else {
-        scheduleForm.reset({
-            date: undefined,
-            time: "",
-            notes: ""
+        processForm.reset({
+            protocolNumber: installation.protocolNumber || "",
+            protocolDate: installation.protocolDate ? new Date(installation.protocolDate) : undefined,
+            projectStatus: installation.projectStatus,
+            homologationStatus: installation.homologationStatus,
         });
     }
-  }, [installation, scheduleForm]);
+  }, [installation, scheduleForm, processForm]);
 
   const finalReportForm = useForm<FinalReportValues>({
     resolver: zodResolver(finalReportSchema),
   });
 
-  function updateInstallation(updatedInstallation: Installation) {
+  function updateInstallation(updatedInstallation: Installation, toastMessage?: {title: string, description: string}) {
       const allInstallations: Installation[] = JSON.parse(localStorage.getItem('installations') || '[]');
       const updatedAllInstallations = allInstallations.map(inst =>
         inst.id === updatedInstallation.id ? updatedInstallation : inst
       );
       localStorage.setItem('installations', JSON.stringify(updatedAllInstallations));
       setInstallation(updatedInstallation);
+      if (toastMessage) {
+        toast(toastMessage);
+      }
   }
 
   const handleAddEvent = async (values: EventValues) => {
@@ -190,12 +216,10 @@ export default function InstallationDetailPage() {
 
     const updatedInstallation = {
       ...installation,
-      events: [...(installation.events || []), newEvent],
+      events: [...(installation.events || []), newEvent].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
     };
     
-    updateInstallation(updatedInstallation);
-
-    toast({ title: "Evento Adicionado!", description: `Novo evento do tipo "${values.type}" foi registrado.` });
+    updateInstallation(updatedInstallation, { title: "Evento Adicionado!", description: `Novo evento do tipo "${values.type}" foi registrado.` });
     eventForm.reset();
     setEventDialogOpen(false);
   };
@@ -222,14 +246,69 @@ export default function InstallationDetailPage() {
       ...installation,
       scheduledDate: scheduledDate.toISOString(),
       status: "Agendado" as Installation['status'],
-      events: [...(installation.events || []), newEvent],
+      events: [...(installation.events || []), newEvent].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
     };
 
-    updateInstallation(updatedInstallation);
-    toast({ title: "Instalação Agendada!", description: `Agendado para ${formattedDate}`});
+    updateInstallation(updatedInstallation, { title: "Instalação Agendada!", description: `Agendado para ${formattedDate}`});
     setScheduleDialogOpen(false);
   }
   
+  const handleProcessUpdate = (values: ProcessValues) => {
+    if (!installation) return;
+
+    const newEvents = [...(installation.events || [])];
+    let updateDescription = "Processo atualizado.";
+
+    // Check for protocol changes
+    if (values.protocolNumber && values.protocolNumber !== installation.protocolNumber) {
+        newEvents.push({
+            id: new Date().toISOString() + "_protocol",
+            date: values.protocolDate?.toISOString() || new Date().toISOString(),
+            type: "Protocolo",
+            description: `Protocolo da Cia de Energia atualizado para: ${values.protocolNumber}.`,
+            attachments: []
+        });
+        updateDescription = `Protocolo ${values.protocolNumber} registrado.`;
+    }
+
+    // Check for project status changes
+    if (values.projectStatus !== installation.projectStatus) {
+        newEvents.push({
+            id: new Date().toISOString() + "_project",
+            date: new Date().toISOString(),
+            type: "Projeto",
+            description: `Status do projeto alterado para: ${values.projectStatus}.`,
+            attachments: []
+        });
+        updateDescription = `Status do projeto atualizado para ${values.projectStatus}.`;
+    }
+    
+    // Check for homologation status changes
+    if (values.homologationStatus !== installation.homologationStatus) {
+        newEvents.push({
+            id: new Date().toISOString() + "_homologation",
+            date: new Date().toISOString(),
+            type: "Homologação",
+            description: `Status da homologação alterado para: ${values.homologationStatus}.`,
+            attachments: []
+        });
+        updateDescription = `Status da homologação atualizado para ${values.homologationStatus}.`;
+    }
+
+
+    const updatedInstallation: Installation = {
+        ...installation,
+        protocolNumber: values.protocolNumber,
+        protocolDate: values.protocolDate?.toISOString(),
+        projectStatus: values.projectStatus,
+        homologationStatus: values.homologationStatus,
+        events: newEvents.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    };
+
+    updateInstallation(updatedInstallation, { title: "Processo Atualizado!", description: updateDescription });
+    setProcessDialogOpen(false);
+  }
+
   async function handleGenerateFinalReport(values: FinalReportValues) {
     if (!installerReport) return;
     
@@ -273,8 +352,7 @@ export default function InstallationDetailPage() {
         ...installation,
         documents: [...(installation.documents || []), ...newDocuments],
     };
-    updateInstallation(updatedInstallation);
-    toast({ title: "Documento(s) Adicionado(s)!", description: `${newDocuments.length} arquivo(s) foram anexados à instalação.` });
+    updateInstallation(updatedInstallation, { title: "Documento(s) Adicionado(s)!", description: `${newDocuments.length} arquivo(s) foram anexados à instalação.` });
     documentForm.reset();
     setDocumentDialogOpen(false);
   }
@@ -302,23 +380,7 @@ export default function InstallationDetailPage() {
   }
   
   const Icon = installation.installationType === 'residencial' ? Home : Building;
-  const getStatusProps = (status: Installation["status"]) => {
-    switch (status) {
-      case "Concluído":
-        return { icon: <CheckCircle className="h-4 w-4" />, className: "bg-green-600 hover:bg-green-700", label: "Concluído" };
-      case "Cancelado":
-        return { icon: <XCircle className="h-4 w-4" />, className: "bg-red-600 hover:bg-red-700", label: "Cancelado" };
-       case "Em Andamento":
-        return { icon: <Bolt className="h-4 w-4" />, className: "bg-yellow-500 hover:bg-yellow-600", label: "Em Andamento" };
-      case "Agendado":
-         return { icon: <Clock className="h-4 w-4" />, className: "bg-blue-500 hover:bg-blue-600", label: "Agendado" };
-      case "Pendente":
-      default:
-        return { icon: <FileText className="h-4 w-4" />, className: "bg-gray-500 hover:bg-gray-600", label: "Pendente" };
-    }
-  };
-  const statusProps = getStatusProps(installation.status);
-  
+
   const allAttachments = [
     ...(installation.documents?.map(doc => ({
       id: `doc_${doc.name}_${doc.date}`,
@@ -394,7 +456,7 @@ export default function InstallationDetailPage() {
                                     <p className="text-sm">Use o botão abaixo para adicionar o primeiro evento.</p>
                                  </div>
                                )}
-                               {[...(installation.events || [])].reverse().map(event => {
+                               {installation.events.map(event => {
                                    const EventIcon = EVENT_TYPES.find(e => e.value === event.type)?.icon || MessageSquare;
                                    return (
                                        <div key={event.id} className="relative">
@@ -425,7 +487,7 @@ export default function InstallationDetailPage() {
                             <Dialog open={isEventDialogOpen} onOpenChange={setEventDialogOpen}>
                                 <DialogTrigger asChild>
                                     <Button>
-                                        <Plus className="mr-2 h-4 w-4" /> Adicionar Evento
+                                        <Plus className="mr-2 h-4 w-4" /> Adicionar Evento Manual
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent>
@@ -512,7 +574,7 @@ export default function InstallationDetailPage() {
                                         <FormItem>
                                             <FormLabel>Número de Protocolo</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="Insira o número do protocolo" {...field} disabled={!installation.reportSubmitted}/>
+                                                <Input placeholder="Insira o número do protocolo" {...field} disabled={!installation.reportSubmitted} defaultValue={installation.protocolNumber}/>
                                             </FormControl>
                                             <FormMessage/>
                                         </FormItem>
@@ -668,16 +730,95 @@ export default function InstallationDetailPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Status da Instalação</CardTitle>
+                    <CardTitle>Painel de Controle do Processo</CardTitle>
                 </CardHeader>
-                <CardContent>
-                     <Badge variant="default" className={cn("text-base", statusProps.className)}>
-                        {statusProps.icon}
-                        <span className="ml-2">{statusProps.label}</span>
-                     </Badge>
+                <CardContent className="space-y-4">
+                    <div className="space-y-1">
+                        <Label>Protocolo Cia. Energia</Label>
+                        <p className="text-sm text-muted-foreground">{installation.protocolNumber || "Não informado"} {installation.protocolDate ? `em ${format(new Date(installation.protocolDate), 'dd/MM/yy')}`: ''}</p>
+                    </div>
+                    <div className="space-y-1">
+                        <Label>Status do Projeto</Label>
+                         <p className="text-sm font-medium">{installation.projectStatus}</p>
+                    </div>
+                     <div className="space-y-1">
+                        <Label>Status da Homologação</Label>
+                         <p className="text-sm font-medium">{installation.homologationStatus}</p>
+                    </div>
                 </CardContent>
+                <CardFooter>
+                    <Dialog open={isProcessDialogOpen} onOpenChange={setProcessDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" className="w-full">
+                                <ListChecks className="mr-2 h-4 w-4" /> Gerenciar Processo
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Gerenciar Processo com a Cia. de Energia</DialogTitle>
+                            </DialogHeader>
+                            <Form {...processForm}>
+                                <form id="process-form" className="space-y-4" onSubmit={processForm.handleSubmit(handleProcessUpdate)}>
+                                    <FormField control={processForm.control} name="protocolNumber" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Nº do Protocolo</FormLabel>
+                                            <FormControl><Input placeholder="Número do protocolo" {...field} /></FormControl>
+                                        </FormItem>
+                                    )}/>
+                                    <FormField control={processForm.control} name="protocolDate" render={({ field }) => (
+                                        <FormItem className="flex flex-col">
+                                          <FormLabel>Data do Protocolo</FormLabel>
+                                          <Popover>
+                                            <PopoverTrigger asChild>
+                                              <FormControl>
+                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                  {field.value ? format(field.value, 'PPP', { locale: ptBR }) : <span>Escolha uma data</span>}
+                                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                </Button>
+                                              </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                              <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                            </PopoverContent>
+                                          </Popover>
+                                        </FormItem>
+                                      )}/>
+                                    <FormField control={processForm.control} name="projectStatus" render={({ field }) => (
+                                        <FormItem><FormLabel>Status do Projeto</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="Não Enviado">Não Enviado</SelectItem>
+                                                    <SelectItem value="Enviado para Análise">Enviado para Análise</SelectItem>
+                                                    <SelectItem value="Aprovado">Aprovado</SelectItem>
+                                                    <SelectItem value="Reprovado">Reprovado</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </FormItem>
+                                    )}/>
+                                    <FormField control={processForm.control} name="homologationStatus" render={({ field }) => (
+                                        <FormItem><FormLabel>Status da Homologação</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="Pendente">Pendente</SelectItem>
+                                                    <SelectItem value="Aprovado">Aprovado</SelectItem>
+                                                    <SelectItem value="Reprovado">Reprovado</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </FormItem>
+                                    )}/>
+                                </form>
+                            </Form>
+                            <DialogFooter>
+                                <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                                <Button type="submit" form="process-form">Salvar Alterações</Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </CardFooter>
             </Card>
-            
+
             <Card>
                 <CardHeader>
                     <CardTitle>Agendamento</CardTitle>
@@ -692,13 +833,13 @@ export default function InstallationDetailPage() {
                             <p className="text-xs text-muted-foreground">O status da instalação foi atualizado para "Agendado".</p>
                         </div>
                     ) : (
-                        <p className="text-sm text-muted-foreground">Nenhuma data agendada.</p>
+                        <p className="text-sm text-muted-foreground">Aguardando aprovação do projeto para agendar.</p>
                     )}
                 </CardContent>
                 <CardFooter>
                     <Dialog open={isScheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
                         <DialogTrigger asChild>
-                            <Button variant="outline" className="w-full">
+                            <Button variant="outline" className="w-full" disabled={installation.projectStatus !== 'Aprovado'}>
                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                 {installation.scheduledDate ? "Reagendar" : "Agendar"}
                             </Button>
@@ -805,5 +946,3 @@ export default function InstallationDetailPage() {
     </div>
   );
 }
-
-    
