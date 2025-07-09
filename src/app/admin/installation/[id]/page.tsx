@@ -8,9 +8,9 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Video, Bolt, Clock, CheckCircle, XCircle, FileText, Activity, FileJson, Files, Upload, Camera, ListChecks, Hourglass, Send, ThumbsUp, ThumbsDown } from "lucide-react";
+import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Video, Bolt, Clock, CheckCircle, XCircle, FileText, Activity, FileJson, Files, Upload, ListChecks, Hourglass, Send, ThumbsUp, ThumbsDown } from "lucide-react";
 
-import { type Installation } from "@/app/admin/page";
+import { type Installation, InstallationStatus, ProjectStatus, HomologationStatus } from "@/app/admin/page";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -79,14 +79,6 @@ const documentSchema = z.object({
 });
 type DocumentValues = z.infer<typeof documentSchema>;
 
-const processSchema = z.object({
-    protocolNumber: z.string().optional(),
-    protocolDate: z.date().optional(),
-    projectStatus: z.enum(["Não Enviado", "Enviado para Análise", "Aprovado", "Reprovado"]),
-    homologationStatus: z.enum(["Pendente", "Aprovado", "Reprovado"]),
-});
-type ProcessValues = z.infer<typeof processSchema>;
-
 
 const EVENT_TYPES = [
   { value: "Agendamento", label: "Agendamento", icon: CalendarIcon },
@@ -108,10 +100,10 @@ export default function InstallationDetailPage() {
   const [isEventDialogOpen, setEventDialogOpen] = useState(false);
   const [isScheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [isDocumentDialogOpen, setDocumentDialogOpen] = useState(false);
-  const [isProcessDialogOpen, setProcessDialogOpen] = useState(false);
   const [installerReport, setInstallerReport] = useState<any | null>(null);
   const [generatedFinalReport, setGeneratedFinalReport] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -145,19 +137,13 @@ export default function InstallationDetailPage() {
         notes: "",
     }
   });
-  
-  const processForm = useForm<ProcessValues>({
-    resolver: zodResolver(processSchema),
-    defaultValues: {
-        protocolNumber: "",
-        protocolDate: undefined,
-        projectStatus: "Não Enviado",
-        homologationStatus: "Pendente",
-    }
-  });
 
   const documentForm = useForm<DocumentValues>({
     resolver: zodResolver(documentSchema),
+  });
+  
+  const finalReportForm = useForm<FinalReportValues>({
+    resolver: zodResolver(finalReportSchema),
   });
 
   useEffect(() => {
@@ -167,18 +153,8 @@ export default function InstallationDetailPage() {
             time: installation.scheduledDate ? format(new Date(installation.scheduledDate), 'HH:mm') : "",
             notes: ""
         });
-        processForm.reset({
-            protocolNumber: installation.protocolNumber || "",
-            protocolDate: installation.protocolDate ? new Date(installation.protocolDate) : undefined,
-            projectStatus: installation.projectStatus,
-            homologationStatus: installation.homologationStatus,
-        });
     }
-  }, [installation, scheduleForm, processForm]);
-
-  const finalReportForm = useForm<FinalReportValues>({
-    resolver: zodResolver(finalReportSchema),
-  });
+  }, [installation, scheduleForm]);
 
   function updateInstallation(updatedInstallation: Installation, toastMessage?: {title: string, description: string}) {
       const allInstallations: Installation[] = JSON.parse(localStorage.getItem('installations') || '[]');
@@ -255,61 +231,36 @@ export default function InstallationDetailPage() {
     setScheduleDialogOpen(false);
   }
   
-  const handleProcessUpdate = (values: ProcessValues) => {
-    if (!installation) return;
+  const handleStatusChange = (statusType: keyof Installation, newStatus: string) => {
+    if (!installation || isSubmitting) return;
 
-    const newEvents = [...(installation.events || [])];
-    let updateDescription = "Processo atualizado.";
-
-    // Check for protocol changes
-    if (values.protocolNumber && values.protocolNumber !== installation.protocolNumber) {
-        newEvents.push({
-            id: new Date().toISOString() + "_protocol",
-            date: values.protocolDate?.toISOString() || new Date().toISOString(),
-            type: "Protocolo",
-            description: `Protocolo da Cia de Energia atualizado para: ${values.protocolNumber}.`,
-            attachments: []
-        });
-        updateDescription = `Protocolo ${values.protocolNumber} registrado.`;
+    setIsSubmitting(true);
+    const oldStatus = installation[statusType];
+    if (oldStatus === newStatus) {
+        setIsSubmitting(false);
+        return;
     }
 
-    // Check for project status changes
-    if (values.projectStatus !== installation.projectStatus) {
-        newEvents.push({
-            id: new Date().toISOString() + "_project",
-            date: new Date().toISOString(),
-            type: "Projeto",
-            description: `Status do projeto alterado para: ${values.projectStatus}.`,
-            attachments: []
-        });
-        updateDescription = `Status do projeto atualizado para ${values.projectStatus}.`;
-    }
-    
-    // Check for homologation status changes
-    if (values.homologationStatus !== installation.homologationStatus) {
-        newEvents.push({
-            id: new Date().toISOString() + "_homologation",
-            date: new Date().toISOString(),
-            type: "Homologação",
-            description: `Status da homologação alterado para: ${values.homologationStatus}.`,
-            attachments: []
-        });
-        updateDescription = `Status da homologação atualizado para ${values.homologationStatus}.`;
-    }
+    const updatedInstallation = { ...installation, [statusType]: newStatus as any };
 
-
-    const updatedInstallation: Installation = {
-        ...installation,
-        protocolNumber: values.protocolNumber,
-        protocolDate: values.protocolDate?.toISOString(),
-        projectStatus: values.projectStatus,
-        homologationStatus: values.homologationStatus,
-        events: newEvents.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    // Create a new event for the change
+    const newEvent = {
+      id: new Date().toISOString(),
+      date: new Date().toISOString(),
+      type: "Nota",
+      description: `Status de '${statusType}' alterado de "${oldStatus}" para "${newStatus}".`,
+      attachments: [],
     };
+    
+    updatedInstallation.events = [...(updatedInstallation.events || []), newEvent].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    updateInstallation(updatedInstallation, { title: "Processo Atualizado!", description: updateDescription });
-    setProcessDialogOpen(false);
-  }
+    updateInstallation(updatedInstallation, {
+        title: "Status Atualizado!",
+        description: `O ${statusType} foi atualizado para "${newStatus}".`
+    });
+    
+    setTimeout(() => setIsSubmitting(false), 500); // Prevent rapid changes
+  };
 
   async function handleGenerateFinalReport(values: FinalReportValues) {
     if (!installerReport) return;
@@ -454,9 +405,27 @@ export default function InstallationDetailPage() {
   ];
 
   const statusItems = [
-    { label: "Status da Instalação", value: installation.status, icon: Bolt },
-    { label: "Status do Projeto", value: installation.projectStatus, icon: FileCheck2 },
-    { label: "Status da Homologação", value: installation.homologationStatus, icon: CheckCircle },
+    { 
+      label: "Status da Instalação", 
+      value: installation.status, 
+      options: Object.values(InstallationStatus),
+      key: "status" as keyof Installation,
+      icon: Bolt 
+    },
+    { 
+      label: "Status do Projeto", 
+      value: installation.projectStatus, 
+      options: Object.values(ProjectStatus),
+      key: "projectStatus" as keyof Installation,
+      icon: FileCheck2 
+    },
+    { 
+      label: "Status da Homologação", 
+      value: installation.homologationStatus, 
+      options: Object.values(HomologationStatus),
+      key: "homologationStatus" as keyof Installation,
+      icon: CheckCircle 
+    },
   ];
 
   return (
@@ -469,108 +438,6 @@ export default function InstallationDetailPage() {
         <div className="flex-1">
           <h1 className="font-semibold text-lg md:text-xl truncate">{installation.clientName}</h1>
         </div>
-        <Dialog open={isProcessDialogOpen} onOpenChange={setProcessDialogOpen}>
-            <DialogTrigger asChild>
-                <Button>
-                    <ListChecks className="mr-2 h-4 w-4" /> Gerenciar Processo
-                </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle>Gerenciar Processo com a Cia. de Energia</DialogTitle>
-                    <DialogDescription>Atualize o andamento das etapas principais.</DialogDescription>
-                </DialogHeader>
-                <Form {...processForm}>
-                    <form id="process-form" className="space-y-2" onSubmit={processForm.handleSubmit(handleProcessUpdate)}>
-                       <Accordion type="multiple" defaultValue={['protocolo']} className="w-full">
-                            <AccordionItem value="protocolo">
-                                <AccordionTrigger>
-                                  <div className="flex items-center gap-3">
-                                    <FileText className="h-5 w-5 text-primary" />
-                                    <span className="font-semibold">Etapa 1: Protocolo</span>
-                                  </div>
-                                </AccordionTrigger>
-                                <AccordionContent className="pt-4 space-y-4">
-                                    <FormField control={processForm.control} name="protocolNumber" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Nº do Protocolo</FormLabel>
-                                            <FormControl><Input placeholder="Número do protocolo" {...field} value={field.value ?? ''} /></FormControl>
-                                        </FormItem>
-                                    )}/>
-                                    <FormField control={processForm.control} name="protocolDate" render={({ field }) => (
-                                        <FormItem className="flex flex-col">
-                                          <FormLabel>Data do Protocolo</FormLabel>
-                                          <Popover>
-                                            <PopoverTrigger asChild>
-                                              <FormControl>
-                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                  {field.value ? format(field.value, 'PPP', { locale: ptBR }) : <span>Escolha uma data</span>}
-                                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                </Button>
-                                              </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                              <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                                            </PopoverContent>
-                                          </Popover>
-                                        </FormItem>
-                                      )}/>
-                                </AccordionContent>
-                            </AccordionItem>
-                             <AccordionItem value="projeto">
-                                <AccordionTrigger>
-                                  <div className="flex items-center gap-3">
-                                    <FileCheck2 className="h-5 w-5 text-primary" />
-                                    <span className="font-semibold">Etapa 2: Projeto</span>
-                                  </div>
-                                </AccordionTrigger>
-                                <AccordionContent className="pt-4">
-                                     <FormField control={processForm.control} name="projectStatus" render={({ field }) => (
-                                        <FormItem><FormLabel>Status do Projeto</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="Não Enviado">Não Enviado</SelectItem>
-                                                    <SelectItem value="Enviado para Análise">Enviado para Análise</SelectItem>
-                                                    <SelectItem value="Aprovado">Aprovado</SelectItem>
-                                                    <SelectItem value="Reprovado">Reprovado</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </FormItem>
-                                    )}/>
-                                </AccordionContent>
-                            </AccordionItem>
-                             <AccordionItem value="homologacao">
-                                <AccordionTrigger>
-                                  <div className="flex items-center gap-3">
-                                    <CheckCircle className="h-5 w-5 text-primary" />
-                                    <span className="font-semibold">Etapa 3: Homologação</span>
-                                  </div>
-                                </AccordionTrigger>
-                                <AccordionContent className="pt-4">
-                                    <FormField control={processForm.control} name="homologationStatus" render={({ field }) => (
-                                        <FormItem><FormLabel>Status da Homologação</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="Pendente">Pendente</SelectItem>
-                                                    <SelectItem value="Aprovado">Aprovado</SelectItem>
-                                                    <SelectItem value="Reprovado">Reprovado</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </FormItem>
-                                    )}/>
-                                </AccordionContent>
-                            </AccordionItem>
-                       </Accordion>
-                    </form>
-                </Form>
-                <DialogFooter className="pt-4">
-                    <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-                    <Button type="submit" form="process-form">Salvar Alterações</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
       </header>
 
       <main className="flex-1 p-4 md:p-6 grid gap-6 md:grid-cols-3 lg:grid-cols-4">
@@ -904,33 +771,53 @@ export default function InstallationDetailPage() {
                         <Bolt className="h-4 w-4 text-muted-foreground"/>
                         <span>{installation.utilityCompany}</span>
                     </div>
+                     <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-muted-foreground"/>
+                        <span>Protocolo: {installation.protocolNumber || "N/A"}</span>
+                    </div>
                 </CardContent>
             </Card>
 
              <Card>
                 <CardHeader>
                     <CardTitle>Status Gerais</CardTitle>
+                    <CardDescription>Gerencie o andamento da instalação.</CardDescription>
                 </CardHeader>
-                <CardContent className="text-sm space-y-3">
+                <CardContent className="text-sm space-y-4">
                     {statusItems.map((item, index) => (
-                         <div key={index} className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-muted-foreground">
+                         <div key={index} className="space-y-1">
+                            <Label className="flex items-center gap-2 text-muted-foreground">
                                 <item.icon className="h-4 w-4"/>
                                 <span>{item.label}</span>
-                            </div>
-                            <Badge variant={item.value === 'Aprovado' || item.value === 'Concluído' ? 'default' : 'secondary'} className={item.value === 'Aprovado' || item.value === 'Concluído' ? 'bg-green-600' : ''}>{item.value}</Badge>
+                            </Label>
+                            <Select 
+                                value={item.value} 
+                                onValueChange={(newStatus) => handleStatusChange(item.key, newStatus)}
+                                disabled={isSubmitting}
+                            >
+                                <SelectTrigger className="h-9">
+                                    <SelectValue/>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {item.options.map(option => (
+                                        <SelectItem key={option} value={option}>{option}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                     ))}
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-muted-foreground">
+                    <div className="space-y-1">
+                        <Label className="flex items-center gap-2 text-muted-foreground">
                             <FileText className="h-4 w-4"/>
                             <span>Relatório Técnico</span>
+                        </Label>
+                        <div className="pt-1">
+                          {installation.reportSubmitted ? (
+                              <Badge variant="default" className="bg-blue-600 hover:bg-blue-700">Enviado</Badge>
+                          ) : (
+                              <Badge variant="secondary">Pendente</Badge>
+                          )}
                         </div>
-                        {installation.reportSubmitted ? (
-                            <Badge variant="default" className="bg-blue-600 hover:bg-blue-700">Enviado</Badge>
-                        ) : (
-                            <Badge variant="secondary">Pendente</Badge>
-                        )}
                     </div>
                 </CardContent>
             </Card>

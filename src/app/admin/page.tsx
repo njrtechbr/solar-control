@@ -35,7 +35,10 @@ import { ptBR } from "date-fns/locale";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
-// Extended Installation type for CRM features
+export const InstallationStatus = z.enum(["Pendente", "Agendado", "Em Andamento", "Concluído", "Cancelado"]);
+export const ProjectStatus = z.enum(["Não Enviado", "Enviado para Análise", "Aprovado", "Reprovado"]);
+export const HomologationStatus = z.enum(["Pendente", "Aprovado", "Reprovado"]);
+
 const installationSchema = z.object({
   id: z.number().optional(),
   clientName: z.string().min(2, "O nome do cliente é obrigatório."),
@@ -47,13 +50,11 @@ const installationSchema = z.object({
     required_error: "Selecione o tipo de instalação.",
   }),
   utilityCompany: z.string().min(2, "O nome da concessionária é obrigatório."),
-  // New fields for utility company process
   protocolNumber: z.string().optional(),
   protocolDate: z.string().optional(),
-  projectStatus: z.enum(["Não Enviado", "Enviado para Análise", "Aprovado", "Reprovado"]).default("Não Enviado"),
-  homologationStatus: z.enum(["Pendente", "Aprovado", "Reprovado"]).default("Pendente"),
-
-  status: z.enum(["Pendente", "Agendado", "Em Andamento", "Concluído", "Cancelado"]).default("Pendente"),
+  projectStatus: ProjectStatus.default("Não Enviado"),
+  homologationStatus: HomologationStatus.default("Pendente"),
+  status: InstallationStatus.default("Pendente"),
   reportSubmitted: z.boolean().default(false),
   scheduledDate: z.string().optional(),
   events: z.array(z.object({
@@ -72,10 +73,6 @@ const installationSchema = z.object({
 });
 
 export type Installation = z.infer<typeof installationSchema>;
-
-export type InstallationStatus = Installation['status'];
-export type ProjectStatus = Installation['projectStatus'];
-export type HomologationStatus = Installation['homologationStatus'];
 
 const INSTALLATION_STATUS_COLUMNS: KanbanColumnType[] = [
   { id: 'Pendente', title: 'Pendente' },
