@@ -12,7 +12,7 @@ import {
     ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, 
     MessageSquare, Check, Sparkles, Copy, FileCheck2, Video, Bolt, Clock, CheckCircle, XCircle, FileText, 
     Activity, FileJson, Files, Upload, Hourglass, Send, ThumbsUp, ThumbsDown, Archive, ArchiveRestore, 
-    Link as LinkIcon, Printer, CircuitBoard, Trash2, Edit 
+    Link as LinkIcon, Printer, CircuitBoard, Trash2, Edit, Save 
 } from "lucide-react";
 import Link from "next/link";
 
@@ -89,11 +89,6 @@ const scheduleSchema = z.object({
     notes: z.string().optional(),
 });
 type ScheduleValues = z.infer<typeof scheduleSchema>;
-
-const finalReportSchema = z.object({
-    protocolNumber: z.string().min(1, "O número do protocolo é obrigatório."),
-});
-type FinalReportValues = z.infer<typeof finalReportSchema>;
 
 const documentSchema = z.object({
     files: z.any().refine(files => files?.length > 0, "Selecione pelo menos um arquivo."),
@@ -230,6 +225,8 @@ export default function InstallationDetailPage() {
   const [isEventDialogOpen, setEventDialogOpen] = useState(false);
   const [isScheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [isDocumentDialogOpen, setDocumentDialogOpen] = useState(false);
+  
+  const [protocolNumberInput, setProtocolNumberInput] = useState('');
 
   const [installerReport, setInstallerReport] = useState<any | null>(null);
   const [generatedFinalReport, setGeneratedFinalReport] = useState<string | null>(null);
@@ -241,6 +238,7 @@ export default function InstallationDetailPage() {
       const allInstallations: Installation[] = JSON.parse(localStorage.getItem('installations') || '[]');
       const currentInstallation = allInstallations.find(inst => inst.id === Number(id));
       setInstallation(currentInstallation || null);
+      setProtocolNumberInput(currentInstallation?.protocolNumber || '');
 
       if (currentInstallation?.reportSubmitted) {
         const reportData = localStorage.getItem(`report_${currentInstallation.clientName}`);
@@ -273,10 +271,6 @@ export default function InstallationDetailPage() {
     resolver: zodResolver(documentSchema),
   });
   
-  const finalReportForm = useForm<FinalReportValues>({
-    resolver: zodResolver(finalReportSchema),
-  });
-
   useEffect(() => {
     if (installation) {
         scheduleForm.reset({
@@ -394,15 +388,19 @@ export default function InstallationDetailPage() {
     setTimeout(() => setIsSubmitting(false), 500); // Prevent rapid changes
   };
 
-  async function handleGenerateFinalReport(values: FinalReportValues) {
-    if (!installerReport) return;
+  async function handleGenerateFinalReport() {
+    if (!installerReport || !installation) return;
     
     setIsGenerating(true);
     setGeneratedFinalReport(null);
     try {
+        const fullReportData = {
+            ...installerReport,
+            protocolNumber: installation.protocolNumber, // Ensure protocol number is in the data
+        };
+
         const input: GenerateFinalReportInput = {
-            installerReport: JSON.stringify(installerReport),
-            protocolNumber: values.protocolNumber,
+            installerReport: JSON.stringify(fullReportData),
         };
         const result = await generateFinalReport(input);
         setGeneratedFinalReport(result.finalReport);
@@ -454,6 +452,30 @@ export default function InstallationDetailPage() {
         description: `O cliente ${installation.clientName} foi ${isArchiving ? 'arquivado' : 'restaurado'}.`
     });
   }
+  
+  const handleSaveProtocolNumber = () => {
+    if (!installation || installation.protocolNumber === protocolNumberInput) return;
+
+    const oldProtocol = installation.protocolNumber || 'N/A';
+    const updatedInstallation: Installation = {
+      ...installation,
+      protocolNumber: protocolNumberInput,
+    };
+    
+    const newEvent = {
+        id: new Date().toISOString() + "_protocol",
+        date: new Date().toISOString(),
+        type: 'Protocolo',
+        description: `Número do protocolo atualizado de "${oldProtocol}" para "${protocolNumberInput}".`,
+        attachments: [],
+    };
+    updatedInstallation.events = [...(updatedInstallation.events || []), newEvent].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    updateInstallation(updatedInstallation, {
+        title: "Protocolo Atualizado!",
+        description: "O número do protocolo foi salvo com sucesso."
+    });
+  };
 
   const copyToClipboard = (text: string, message: string) => {
     navigator.clipboard.writeText(text);
@@ -824,22 +846,11 @@ export default function InstallationDetailPage() {
                             <CardDescription>Use IA para consolidar o relatório do instalador em um documento final.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                             <Form {...finalReportForm}>
-                                <form onSubmit={finalReportForm.handleSubmit(handleGenerateFinalReport)} className="space-y-4">
-                                    <FormField control={finalReportForm.control} name="protocolNumber" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Número de Protocolo</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="Insira o número do protocolo" {...field} disabled={!installation.reportSubmitted} defaultValue={installation.protocolNumber || ''}/>
-                                            </FormControl>
-                                            <FormMessage/>
-                                        </FormItem>
-                                    )}/>
-                                    <Button type="submit" disabled={isGenerating || !installation.reportSubmitted} className="w-full">
-                                        {isGenerating ? "Gerando..." : "Gerar Relatório com IA"}
-                                    </Button>
-                                </form>
-                            </Form>
+                             <div className="space-y-4">
+                                <Button onClick={handleGenerateFinalReport} disabled={isGenerating || !installation.reportSubmitted} className="w-full">
+                                    {isGenerating ? "Gerando..." : "Gerar Relatório com IA"}
+                                </Button>
+                            </div>
                              {isGenerating && (
                                 <div className="space-y-2 pt-4">
                                     <Skeleton className="h-4 w-1/4" />
@@ -978,9 +989,23 @@ export default function InstallationDetailPage() {
                         <Bolt className="h-4 w-4 text-muted-foreground"/>
                         <span>{installation.utilityCompany}</span>
                     </div>
-                     <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground"/>
-                        <span>Protocolo: {installation.protocolNumber || "N/A"}</span>
+                    <div className="space-y-1.5">
+                        <Label htmlFor="protocol-number" className="flex items-center gap-2 text-muted-foreground">
+                            <FileText className="h-4 w-4"/>
+                            <span>Protocolo</span>
+                        </Label>
+                        <div className="flex items-center gap-2">
+                             <Input 
+                                id="protocol-number"
+                                value={protocolNumberInput}
+                                onChange={(e) => setProtocolNumberInput(e.target.value)}
+                                placeholder="Insira o nº do protocolo"
+                             />
+                             <Button size="icon" className="h-10 w-10" onClick={handleSaveProtocolNumber} disabled={protocolNumberInput === installation.protocolNumber}>
+                                <Save className="h-4 w-4" />
+                                <span className="sr-only">Salvar Protocolo</span>
+                             </Button>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -1203,5 +1228,3 @@ export default function InstallationDetailPage() {
     </div>
   );
 }
-
-    

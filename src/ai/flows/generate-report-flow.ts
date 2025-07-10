@@ -12,8 +12,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
 const GenerateFinalReportInputSchema = z.object({
-  installerReport: z.string().describe('The full report from the installer in JSON format.'),
-  protocolNumber: z.string().describe('The protocol number provided by the administrator.'),
+  installerReport: z.string().describe('The full report from the installer in JSON format, which includes the protocol number.'),
 });
 export type GenerateFinalReportInput = z.infer<typeof GenerateFinalReportInputSchema>;
 
@@ -37,7 +36,7 @@ const prompt = ai.definePrompt({
     
     O relatório final deve incluir:
     - O nome do cliente.
-    - O número do protocolo fornecido.
+    - O número do protocolo (busque o campo 'protocolNumber' dentro do JSON).
     - Uma descrição técnica da instalação, resumindo os principais componentes (potência do painel, inversores, etc.).
     - Uma análise das medições elétricas (VCC e CA), destacando se os valores estão dentro do esperado.
     - Uma confirmação dos componentes e cabeamento utilizados.
@@ -47,7 +46,6 @@ const prompt = ai.definePrompt({
 
     Seja claro, objetivo e use uma linguagem técnica apropriada. O relatório é para fins de documentação e verificação final.
 
-    Número de Protocolo: {{{protocolNumber}}}
     Relatório do Instalador (JSON):
     \`\`\`json
     {{{installerReport}}}
