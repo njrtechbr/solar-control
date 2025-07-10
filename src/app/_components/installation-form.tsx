@@ -43,20 +43,15 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
+import { inverterSchema, panelSchema } from "../admin/page";
+
 
 const formSchema = z.object({
   clientName: z.string().min(1, "O nome do cliente é obrigatório."),
   
   // Equipment
-  inverterBrand: z.string().optional(),
-  inverterModel: z.string().optional(),
-  inverterSerialNumber: z.string().optional(),
-  inverterWarranty: z.string().optional(),
-  dataloggerId: z.string().optional(),
-  panelBrand: z.string().optional(),
-  panelModel: z.string().optional(),
-  panelPower: z.coerce.number().positive().optional(),
-  panelQuantity: z.coerce.number().positive().optional(),
+  inverters: z.array(inverterSchema).optional(),
+  panels: z.array(panelSchema).optional(),
 
   // VCC
   strings: z.array(
@@ -128,6 +123,8 @@ export default function InstallationForm({ clientName }: { clientName: string })
     resolver: zodResolver(formSchema),
     defaultValues: {
       clientName: clientName || "",
+      inverters: [],
+      panels: [],
       strings: Array(6).fill({ voltage: undefined, plates: undefined }),
       photo_uploads: Array(12).fill({ file: undefined, dataUrl: "", annotation: "" }),
       dataloggerConnected: false,
@@ -225,20 +222,20 @@ export default function InstallationForm({ clientName }: { clientName: string })
                     <div className="rounded-lg border p-4 space-y-4">
                       <h4 className="font-medium">Inversor</h4>
                       <div className="grid grid-cols-2 gap-4">
-                        <FormField control={form.control} name="inverterBrand" render={({ field }) => (<FormItem><FormLabel>Marca</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
-                        <FormField control={form.control} name="inverterModel" render={({ field }) => (<FormItem><FormLabel>Modelo</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
-                        <FormField control={form.control} name="inverterSerialNumber" render={({ field }) => (<FormItem><FormLabel>Nº de Série</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
-                        <FormField control={form.control} name="inverterWarranty" render={({ field }) => (<FormItem><FormLabel>Garantia</FormLabel><FormControl><Input placeholder="Ex: 5 anos" {...field} /></FormControl></FormItem>)} />
-                        <FormField control={form.control} name="dataloggerId" render={({ field }) => (<FormItem><FormLabel>ID Datalogger</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                        <FormField control={form.control} name="inverters.0.brand" render={({ field }) => (<FormItem><FormLabel>Marca</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                        <FormField control={form.control} name="inverters.0.model" render={({ field }) => (<FormItem><FormLabel>Modelo</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                        <FormField control={form.control} name="inverters.0.serialNumber" render={({ field }) => (<FormItem><FormLabel>Nº de Série</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                        <FormField control={form.control} name="inverters.0.warranty" render={({ field }) => (<FormItem><FormLabel>Garantia</FormLabel><FormControl><Input placeholder="Ex: 5 anos" {...field} /></FormControl></FormItem>)} />
+                        <FormField control={form.control} name="inverters.0.dataloggerId" render={({ field }) => (<FormItem><FormLabel>ID Datalogger</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
                       </div>
                     </div>
                      <div className="rounded-lg border p-4 space-y-4">
                       <h4 className="font-medium">Painéis Solares</h4>
                       <div className="grid grid-cols-2 gap-4">
-                        <FormField control={form.control} name="panelBrand" render={({ field }) => (<FormItem><FormLabel>Marca</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
-                        <FormField control={form.control} name="panelModel" render={({ field }) => (<FormItem><FormLabel>Modelo</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
-                        <FormField control={form.control} name="panelPower" render={({ field }) => (<FormItem><FormLabel>Potência (Wp)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
-                        <FormField control={form.control} name="panelQuantity" render={({ field }) => (<FormItem><FormLabel>Quantidade</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
+                        <FormField control={form.control} name="panels.0.brand" render={({ field }) => (<FormItem><FormLabel>Marca</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                        <FormField control={form.control} name="panels.0.model" render={({ field }) => (<FormItem><FormLabel>Modelo</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                        <FormField control={form.control} name="panels.0.power" render={({ field }) => (<FormItem><FormLabel>Potência (Wp)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
+                        <FormField control={form.control} name="panels.0.quantity" render={({ field }) => (<FormItem><FormLabel>Quantidade</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
                       </div>
                     </div>
                 </AccordionContent>
@@ -404,3 +401,5 @@ export default function InstallationForm({ clientName }: { clientName: string })
     </div>
   );
 }
+
+    

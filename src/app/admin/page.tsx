@@ -43,6 +43,25 @@ export const InstallationStatus = z.enum(["Pendente", "Agendado", "Em Andamento"
 export const ProjectStatus = z.enum(["Não Enviado", "Enviado para Análise", "Aprovado", "Reprovado"]);
 export const HomologationStatus = z.enum(["Pendente", "Aprovado", "Reprovado"]);
 
+export const inverterSchema = z.object({
+  id: z.string().optional(),
+  brand: z.string().optional(),
+  model: z.string().optional(),
+  serialNumber: z.string().optional(),
+  warranty: z.string().optional(),
+  dataloggerId: z.string().optional(),
+});
+export type Inverter = z.infer<typeof inverterSchema>;
+
+export const panelSchema = z.object({
+  id: z.string().optional(),
+  brand: z.string().optional(),
+  model: z.string().optional(),
+  power: z.coerce.number().optional(),
+  quantity: z.coerce.number().optional(),
+});
+export type Panel = z.infer<typeof panelSchema>;
+
 const installationSchema = z.object({
   id: z.number().optional(),
   installationId: z.string().optional(),
@@ -58,17 +77,8 @@ const installationSchema = z.object({
   protocolNumber: z.string().optional(),
   protocolDate: z.string().optional(),
   
-  // Equipment Details
-  inverterBrand: z.string().optional(),
-  inverterModel: z.string().optional(),
-  inverterSerialNumber: z.string().optional(),
-  inverterWarranty: z.string().optional(),
-  dataloggerId: z.string().optional(),
-  
-  panelBrand: z.string().optional(),
-  panelModel: z.string().optional(),
-  panelPower: z.coerce.number().optional(),
-  panelQuantity: z.coerce.number().optional(),
+  inverters: z.array(inverterSchema).default([]),
+  panels: z.array(panelSchema).default([]),
   
   projectStatus: ProjectStatus.default("Não Enviado"),
   homologationStatus: HomologationStatus.default("Pendente"),
@@ -133,15 +143,8 @@ const initialInstallations: Installation[] = [
       utilityCompany: "CPFL",
       protocolNumber: "987654321",
       protocolDate: new Date(Date.now() - 86400000 * 10).toISOString(),
-      inverterBrand: "WEG",
-      inverterModel: "SIW500H",
-      inverterSerialNumber: "WEG123456",
-      inverterWarranty: "5 anos",
-      dataloggerId: "DTL9876",
-      panelBrand: "Jinko Solar",
-      panelModel: "Tiger Pro",
-      panelPower: 550,
-      panelQuantity: 40,
+      inverters: [{ id: 'inv1', brand: "WEG", model: "SIW500H", serialNumber: "WEG123456", warranty: "5 anos", dataloggerId: "DTL9876" }],
+      panels: [{ id: 'pan1', brand: "Jinko Solar", model: "Tiger Pro", power: 550, quantity: 40 }],
       projectStatus: "Aprovado",
       homologationStatus: "Pendente",
       status: "Agendado", 
@@ -170,15 +173,8 @@ const initialInstallations: Installation[] = [
       utilityCompany: "Enel",
       protocolNumber: "123456789",
       protocolDate: new Date(Date.now() - 86400000 * 15).toISOString(),
-      inverterBrand: "Hoymiles",
-      inverterModel: "MI-1500",
-      inverterSerialNumber: "HOY987654",
-      inverterWarranty: "12 anos",
-      dataloggerId: "DTU-W100",
-      panelBrand: "Canadian Solar",
-      panelModel: "HiKu6",
-      panelPower: 545,
-      panelQuantity: 12,
+      inverters: [{ id: 'inv1', brand: "Hoymiles", model: "MI-1500", serialNumber: "HOY987654", warranty: "12 anos", dataloggerId: "DTU-W100" }],
+      panels: [{ id: 'pan1', brand: "Canadian Solar", model: "HiKu6", power: 545, quantity: 12 }],
       projectStatus: "Aprovado",
       homologationStatus: "Aprovado",
       status: "Concluído", 
@@ -210,6 +206,8 @@ const initialInstallations: Installation[] = [
       utilityCompany: "CPFL",
       protocolNumber: "555555555",
       protocolDate: new Date(Date.now() - 86400000 * 12).toISOString(),
+      inverters: [],
+      panels: [],
       projectStatus: "Reprovado",
       homologationStatus: "Pendente",
       status: "Cancelado", 
@@ -232,6 +230,8 @@ const initialInstallations: Installation[] = [
       utilityCompany: "CPFL",
       protocolNumber: "",
       protocolDate: "",
+      inverters: [],
+      panels: [],
       projectStatus: "Não Enviado",
       homologationStatus: "Pendente",
       status: "Pendente", 
@@ -252,6 +252,8 @@ const initialInstallations: Installation[] = [
       utilityCompany: "CPFL",
       protocolNumber: "333222111",
       protocolDate: new Date(Date.now() - 86400000 * 5).toISOString(),
+      inverters: [],
+      panels: [],
       projectStatus: "Enviado para Análise",
       homologationStatus: "Pendente",
       status: "Pendente", 
@@ -265,15 +267,8 @@ const initialInstallations: Installation[] = [
 const createSampleReport = () => {
   return {
       clientName: "Maria Silva",
-      inverterBrand: "Hoymiles",
-      inverterModel: "MI-1500",
-      inverterSerialNumber: "HOY987654-UPDATED",
-      inverterWarranty: "12 anos",
-      dataloggerId: "DTU-W100-UPDATED",
-      panelBrand: "Canadian Solar",
-      panelModel: "HiKu6",
-      panelPower: 545,
-      panelQuantity: 12,
+      inverters: [{ id: 'inv1', brand: "Hoymiles", model: "MI-1500", serialNumber: "HOY987654-UPDATED", warranty: "12 anos", dataloggerId: "DTU-W100-UPDATED" }],
+      panels: [{ id: 'pan1', brand: "Canadian Solar", model: "HiKu6", power: 545, quantity: 12 }],
       strings: [
           { voltage: 450, plates: 6 },
           { voltage: 452, plates: 6 },
@@ -344,15 +339,8 @@ export default function AdminPage() {
       zipCode: "",
       utilityCompany: "",
       protocolNumber: "",
-      inverterBrand: "",
-      inverterModel: "",
-      inverterSerialNumber: "",
-      inverterWarranty: "",
-      dataloggerId: "",
-      panelBrand: "",
-      panelModel: "",
-      panelPower: undefined,
-      panelQuantity: undefined,
+      inverters: [],
+      panels: [],
       installationType: "residencial",
       status: "Pendente",
       projectStatus: "Não Enviado",
@@ -508,7 +496,7 @@ export default function AdminPage() {
                       Cadastrar Nova Instalação
                     </DialogTitle>
                     <DialogDescription>
-                      Insira os dados para criar um novo registro de instalação.
+                      Insira os dados para criar um novo registro de instalação. Equipamentos são adicionados depois.
                     </DialogDescription>
                   </DialogHeader>
                   <Form {...form}>
@@ -570,21 +558,6 @@ export default function AdminPage() {
                               <FormMessage />
                             </FormItem>
                           )}/>
-                          
-                        <div className="space-y-4 rounded-lg border p-4">
-                          <h3 className="font-semibold flex items-center gap-2"><CircuitBoard size={16} className="text-primary"/> Detalhes do Equipamento</h3>
-                          <div className="grid grid-cols-2 gap-4">
-                             <FormField control={form.control} name="inverterBrand" render={({ field }) => (<FormItem><FormLabel>Marca do Inversor</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)}/>
-                             <FormField control={form.control} name="inverterModel" render={({ field }) => (<FormItem><FormLabel>Modelo do Inversor</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)}/>
-                             <FormField control={form.control} name="inverterSerialNumber" render={({ field }) => (<FormItem><FormLabel>Nº de Série</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)}/>
-                             <FormField control={form.control} name="inverterWarranty" render={({ field }) => (<FormItem><FormLabel>Garantia</FormLabel><FormControl><Input placeholder="Ex: 5 anos" {...field} /></FormControl></FormItem>)}/>
-                             <FormField control={form.control} name="dataloggerId" render={({ field }) => (<FormItem><FormLabel>ID Datalogger</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)}/>
-                             <FormField control={form.control} name="panelBrand" render={({ field }) => (<FormItem><FormLabel>Marca do Painel</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)}/>
-                             <FormField control={form.control} name="panelModel" render={({ field }) => (<FormItem><FormLabel>Modelo do Painel</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)}/>
-                             <FormField control={form.control} name="panelPower" render={({ field }) => (<FormItem><FormLabel>Potência (Wp)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/>
-                             <FormField control={form.control} name="panelQuantity" render={({ field }) => (<FormItem><FormLabel>Quantidade</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)}/>
-                          </div>
-                        </div>
                     </form>
                   </Form>
                   <DialogFooter>
@@ -668,3 +641,5 @@ export default function AdminPage() {
     </>
   );
 }
+
+    

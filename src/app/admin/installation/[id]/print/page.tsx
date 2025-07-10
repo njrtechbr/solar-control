@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import * as QRCode from "qrcode.react";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { SunMedium, Printer, ArrowLeft, Building, Home, MapPin, Bolt, FileText, Calendar, User, Info, CheckCircle, FileCheck, Power, Link as LinkIcon } from "lucide-react";
+import { SunMedium, Printer, ArrowLeft, Building, Home, MapPin, Bolt, FileText, Calendar, User, Info, CheckCircle, FileCheck, Power, Link as LinkIcon, CircuitBoard } from "lucide-react";
 
 import { type Installation } from "@/app/admin/page";
 import { Button } from "@/components/ui/button";
@@ -118,6 +118,26 @@ export default function PrintInstallationPage() {
                              }
                         </div>
                     </section>
+                    
+                    <section className="mb-6">
+                        <h2 className="text-xl font-semibold border-b pb-2 mb-4 flex items-center gap-2"><CircuitBoard className="h-5 w-5 text-primary"/>Equipamentos a Instalar</h2>
+                         <div className="space-y-4 text-sm">
+                            <h3 className="font-semibold">Inversores</h3>
+                            {(installation.inverters || []).map((inverter, idx) => (
+                                <div key={idx} className="pl-4 border-l-2 ml-2">
+                                    <p><strong>{inverter.brand} {inverter.model}</strong></p>
+                                    <p>Nº de Série: {inverter.serialNumber || 'A confirmar'} | Datalogger: {inverter.dataloggerId || 'A confirmar'}</p>
+                                </div>
+                            ))}
+                            <h3 className="font-semibold mt-4">Painéis Solares</h3>
+                            {(installation.panels || []).map((panel, idx) => (
+                                <div key={idx} className="pl-4 border-l-2 ml-2">
+                                    <p><strong>{panel.brand} {panel.model}</strong></p>
+                                    <p>Potência: {panel.power} Wp | Quantidade: {panel.quantity}</p>
+                                </div>
+                            ))}
+                         </div>
+                    </section>
 
                     <section className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-md flex items-center gap-6">
                          <div className="flex-shrink-0">
@@ -168,38 +188,55 @@ export default function PrintInstallationPage() {
                         </div>
                     </section>
                     
-                    {installerReport ? (
+                    {installerReport || (installation.inverters && installation.inverters.length > 0) ? (
                         <section>
                             <h2 className="text-xl font-semibold border-b pb-2 mb-4 flex items-center gap-2"><Power className="h-5 w-5 text-primary"/>Detalhes Técnicos da Instalação</h2>
                             <div className="space-y-4 text-sm">
-                                {Object.entries(installerReport).map(([key, value]) => {
-                                    if (key === 'photo_uploads' || key === 'installationVideoDataUrl' || key === 'installationVideo' || key === 'clientName') return null;
-                                    if (typeof value === 'object' && value !== null) {
-                                       if (Array.isArray(value)) {
-                                            const filteredArray = value.filter(item => item.voltage || item.plates);
-                                            if (filteredArray.length === 0) return null;
-                                            return (
-                                                <div key={key}>
-                                                    <h4 className="font-semibold capitalize text-base">{key.replace(/([A-Z])/g, ' $1')}</h4>
-                                                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-1 pl-4">
-                                                    {filteredArray.map((item, index) => (
-                                                      <div key={index} className="p-2 border rounded-md bg-gray-50">
-                                                          <p><b>String {value.findIndex(originalItem => originalItem === item) + 1}:</b> {item.voltage || 'N/A'} V | {item.plates || 'N/A'} Placas</p>
-                                                      </div>
-                                                    ))}
+                                {installerReport ? (
+                                    Object.entries(installerReport).map(([key, value]) => {
+                                        if (['photo_uploads', 'installationVideoDataUrl', 'installationVideo', 'clientName', 'inverters', 'panels'].includes(key)) return null;
+                                        if (typeof value === 'object' && value !== null) {
+                                           if (Array.isArray(value)) {
+                                                const filteredArray = value.filter(item => item.voltage || item.plates);
+                                                if (filteredArray.length === 0) return null;
+                                                return (
+                                                    <div key={key}>
+                                                        <h4 className="font-semibold capitalize text-base">{key.replace(/([A-Z])/g, ' $1')}</h4>
+                                                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-1 pl-4">
+                                                        {filteredArray.map((item, index) => (
+                                                          <div key={index} className="p-2 border rounded-md bg-gray-50">
+                                                              <p><b>String {value.findIndex(originalItem => originalItem === item) + 1}:</b> {item.voltage || 'N/A'} V | {item.plates || 'N/A'} Placas</p>
+                                                          </div>
+                                                        ))}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            )
+                                                )
+                                            }
+                                            return null;
                                         }
-                                        return null;
-                                    }
-                                    return (
-                                        <div key={key} className="flex justify-between border-b py-1">
-                                            <span className="font-medium text-muted-foreground capitalize">{key.replace(/([A-Z])/g, ' $1')}:</span>
-                                            <span className="text-right font-medium">{String(value) || 'N/A'}</span>
-                                        </div>
-                                    )
-                                })}
+                                        return (
+                                            <div key={key} className="flex justify-between border-b py-1">
+                                                <span className="font-medium text-muted-foreground capitalize">{key.replace(/([A-Z])/g, ' $1')}:</span>
+                                                <span className="text-right font-medium">{String(value) || 'N/A'}</span>
+                                            </div>
+                                        )
+                                    })
+                                ) : (
+                                    <>
+                                        <h3 className="font-semibold">Inversores</h3>
+                                        {(installation.inverters || []).map((inverter, idx) => (
+                                            <div key={idx} className="pl-4 text-xs">
+                                                <p><strong>{inverter.brand} {inverter.model}</strong> (S/N: {inverter.serialNumber || 'N/A'})</p>
+                                            </div>
+                                        ))}
+                                        <h3 className="font-semibold mt-2">Painéis Solares</h3>
+                                        {(installation.panels || []).map((panel, idx) => (
+                                            <div key={idx} className="pl-4 text-xs">
+                                                <p><strong>{panel.quantity}x {panel.brand} {panel.model}</strong> ({panel.power} Wp)</p>
+                                            </div>
+                                        ))}
+                                    </>
+                                )}
                             </div>
                         </section>
                     ) : (
@@ -228,3 +265,5 @@ export default function PrintInstallationPage() {
         </div>
     );
 }
+
+    
