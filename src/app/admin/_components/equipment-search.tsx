@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { Inverter, Installation } from "../page";
+import type { Inverter, Installation } from "../_lib/data";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -145,7 +145,7 @@ export function EquipmentSearch({
             <div className="border-t pt-4">
                 <h4 className="font-semibold text-lg flex items-center gap-2">
                     {searchResult.installation.installationType === 'residencial' ? <Home size={20}/> : <Building size={20}/>}
-                    Instalação Atual
+                    Instalação e Cliente Vinculados
                 </h4>
                 <div className="flex items-center gap-2 mt-2"><User size={16} className="text-muted-foreground"/> {searchResult.installation.clientName}</div>
                 <div className="flex items-center gap-2 mt-1"><MapPin size={16} className="text-muted-foreground"/> {searchResult.installation.address}, {searchResult.installation.city} - {searchResult.installation.state}</div>
