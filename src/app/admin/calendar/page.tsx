@@ -10,7 +10,16 @@ export default function CalendarPage() {
 
     useEffect(() => {
         const savedInstallationsRaw = localStorage.getItem('installations');
-        let savedInstallations = savedInstallationsRaw ? JSON.parse(savedInstallationsRaw) : [];
+        let savedInstallations: Installation[] = [];
+
+        if (savedInstallationsRaw) {
+            try {
+                savedInstallations = JSON.parse(savedInstallationsRaw);
+            } catch (e) {
+                console.error("Failed to parse installations from localStorage", e);
+                savedInstallations = [];
+            }
+        }
 
         if (savedInstallations.length === 0) {
             localStorage.setItem('installations', JSON.stringify(initialInstallations));

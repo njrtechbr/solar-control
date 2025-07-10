@@ -21,7 +21,15 @@ export default function InstallationListPage() {
   useEffect(() => {
     // Load installations
     const savedInstallationsRaw = localStorage.getItem('installations');
-    let loadedInstallations = savedInstallationsRaw ? JSON.parse(savedInstallationsRaw) : [];
+    let loadedInstallations: Installation[] = [];
+    if (savedInstallationsRaw) {
+        try {
+            loadedInstallations = JSON.parse(savedInstallationsRaw);
+        } catch (e) {
+            console.error("Failed to parse installations from localStorage", e);
+            loadedInstallations = [];
+        }
+    }
     if (loadedInstallations.length === 0) {
         localStorage.setItem('installations', JSON.stringify(initialInstallations));
         loadedInstallations = initialInstallations;
@@ -29,10 +37,20 @@ export default function InstallationListPage() {
     
     // Load clients
     const savedClientsRaw = localStorage.getItem('clients');
-    if (!savedClientsRaw || JSON.parse(savedClientsRaw).length === 0) {
-        localStorage.setItem('clients', JSON.stringify(initialClients));
+    let loadedClients: Client[] = [];
+    if (savedClientsRaw) {
+        try {
+            loadedClients = JSON.parse(savedClientsRaw);
+        } catch (e) {
+            console.error("Failed to parse clients from localStorage", e);
+            loadedClients = [];
+        }
     }
-    setClients(savedClientsRaw ? JSON.parse(savedClientsRaw) : initialClients);
+    if (loadedClients.length === 0) {
+        localStorage.setItem('clients', JSON.stringify(initialClients));
+        loadedClients = initialClients;
+    }
+    setClients(loadedClients);
 
     // Handle sample report
     const sampleReportKey = 'report_Maria Silva';
@@ -71,7 +89,7 @@ export default function InstallationListPage() {
     });
   };
 
-  const tableColumns = useMemo(() => getColumns(handleArchiveToggle), []);
+  const tableColumns = useMemo(() => getColumns(handleArchiveToggle), [installations]);
   
   const [filters, setFilters] = useState<{ [key: string]: string }>({});
 

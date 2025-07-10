@@ -59,18 +59,37 @@ export function CreateInstallationDialog() {
   const [clients, setClients] = useState<Client[]>([]);
 
   useEffect(() => {
+    // Correctly load or initialize installations
     const savedInstallationsRaw = localStorage.getItem('installations');
+    let loadedInstallations: Installation[] = [];
     if (savedInstallationsRaw) {
-        setInstallations(JSON.parse(savedInstallationsRaw));
+        try {
+            loadedInstallations = JSON.parse(savedInstallationsRaw);
+        } catch (e) {
+            console.error("Failed to parse installations from localStorage", e);
+            loadedInstallations = [];
+        }
+    }
+    if (loadedInstallations.length > 0) {
+        setInstallations(loadedInstallations);
     }
     
+    // Correctly load or initialize clients
     const savedClientsRaw = localStorage.getItem('clients');
-    let savedClients = savedClientsRaw ? JSON.parse(savedClientsRaw) : [];
-    if (savedClients.length === 0) {
-        localStorage.setItem('clients', JSON.stringify(initialClients));
-        savedClients = initialClients;
+    let loadedClients: Client[] = [];
+    if (savedClientsRaw) {
+        try {
+            loadedClients = JSON.parse(savedClientsRaw);
+        } catch (e) {
+            console.error("Failed to parse clients from localStorage", e);
+            loadedClients = [];
+        }
     }
-    setClients(savedClients);
+    if (loadedClients.length === 0) {
+        localStorage.setItem('clients', JSON.stringify(initialClients));
+        loadedClients = initialClients;
+    }
+    setClients(loadedClients);
 
   }, []);
 

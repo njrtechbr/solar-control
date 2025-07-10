@@ -11,7 +11,16 @@ export default function ClientsPage() {
 
   useEffect(() => {
     const savedClientsRaw = localStorage.getItem('clients');
-    let savedClients = savedClientsRaw ? JSON.parse(savedClientsRaw) : [];
+    let savedClients: Client[] = [];
+    
+    if (savedClientsRaw) {
+      try {
+        savedClients = JSON.parse(savedClientsRaw);
+      } catch (e) {
+        console.error("Failed to parse clients from localStorage", e);
+        savedClients = [];
+      }
+    }
 
     if (savedClients.length === 0) {
         localStorage.setItem('clients', JSON.stringify(initialClients));

@@ -67,12 +67,21 @@ export default function DashboardPage() {
   useEffect(() => {
     // Load clients and installations from localStorage, or initialize with sample data
     const savedClientsRaw = localStorage.getItem('clients');
-    if (!savedClientsRaw || JSON.parse(savedClientsRaw).length === 0) {
+    if (!savedClientsRaw || savedClientsRaw === '[]') {
       localStorage.setItem('clients', JSON.stringify(initialClients));
     }
 
     const savedInstallationsRaw = localStorage.getItem('installations');
-    let loadedInstallations = savedInstallationsRaw ? JSON.parse(savedInstallationsRaw) : [];
+    let loadedInstallations: Installation[] = [];
+    if (savedInstallationsRaw) {
+        try {
+            loadedInstallations = JSON.parse(savedInstallationsRaw);
+        } catch(e) {
+            console.error("Failed to parse installations from localStorage", e);
+            loadedInstallations = [];
+        }
+    }
+    
     if (loadedInstallations.length === 0) {
       localStorage.setItem('installations', JSON.stringify(initialInstallations));
       loadedInstallations = initialInstallations;
@@ -82,6 +91,7 @@ export default function DashboardPage() {
     if (!localStorage.getItem(sampleReportKey)) {
         localStorage.setItem(sampleReportKey, JSON.stringify(createSampleReport()));
     }
+    
     const updatedInstallations = loadedInstallations.map((inst: Installation) => {
         const report = localStorage.getItem(`report_${inst.clientName}`);
         return { ...inst, reportSubmitted: !!report };
