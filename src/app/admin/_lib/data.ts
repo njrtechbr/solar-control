@@ -24,9 +24,9 @@ export const HomologationStatus = z.enum(["Pendente", "Aprovado", "Reprovado"]);
 
 export const inverterSchema = z.object({
   id: z.string().optional(),
-  brand: z.string().optional(),
-  model: z.string().optional(),
-  serialNumber: z.string().optional(),
+  brand: z.string().min(1, "Marca é obrigatória"),
+  model: z.string().min(1, "Modelo é obrigatório"),
+  serialNumber: z.string().min(1, "Nº de série é obrigatório"),
   warranty: z.string().optional(),
   dataloggerId: z.string().optional(),
 });
@@ -34,10 +34,10 @@ export type Inverter = z.infer<typeof inverterSchema>;
 
 export const panelSchema = z.object({
   id: z.string().optional(),
-  brand: z.string().optional(),
-  model: z.string().optional(),
-  power: z.coerce.number().optional(),
-  quantity: z.coerce.number().optional(),
+  brand: z.string().min(1, "Marca é obrigatória"),
+  model: z.string().min(1, "Modelo é obrigatório"),
+  power: z.coerce.number().positive("Potência deve ser positiva"),
+  quantity: z.coerce.number().positive("Quantidade deve ser positiva"),
 });
 export type Panel = z.infer<typeof panelSchema>;
 
@@ -146,6 +146,16 @@ export const initialClients: Client[] = [
     }
 ];
 
+export const initialInverters: Inverter[] = [
+    { id: 'inv1', brand: "WEG", model: "SIW500H", serialNumber: "WEG123456", warranty: "5 anos", dataloggerId: "DTL9876" },
+    { id: 'inv2', brand: "Hoymiles", model: "MI-1500", serialNumber: "HOY987654", warranty: "12 anos", dataloggerId: "DTU-W100" },
+];
+
+export const initialPanels: Panel[] = [
+    { id: 'pan1', brand: "Jinko Solar", model: "Tiger Pro", power: 550, quantity: 40 },
+    { id: 'pan2', brand: "Canadian Solar", model: "HiKu6", power: 545, quantity: 12 },
+];
+
 
 export const initialInstallations: Installation[] = [
     { 
@@ -192,8 +202,8 @@ export const initialInstallations: Installation[] = [
       utilityCompany: "Enel",
       protocolNumber: "123456789",
       protocolDate: new Date(Date.now() - 86400000 * 15).toISOString(),
-      inverters: [{ id: 'inv1', brand: "Hoymiles", model: "MI-1500", serialNumber: "HOY987654", warranty: "12 anos", dataloggerId: "DTU-W100" }],
-      panels: [{ id: 'pan1', brand: "Canadian Solar", model: "HiKu6", power: 545, quantity: 12 }],
+      inverters: [{ id: 'inv2', brand: "Hoymiles", model: "MI-1500", serialNumber: "HOY987654", warranty: "12 anos", dataloggerId: "DTU-W100" }],
+      panels: [{ id: 'pan2', brand: "Canadian Solar", model: "HiKu6", power: 545, quantity: 12 }],
       projectStatus: "Aprovado",
       homologationStatus: "Aprovado",
       status: "Concluído", 
@@ -316,3 +326,5 @@ export const createSampleReport = () => {
       installationVideoDataUrl: "",
   };
 };
+
+    

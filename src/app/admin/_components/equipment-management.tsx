@@ -9,6 +9,9 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import {
   MoreHorizontal,
   PlusCircle,
@@ -50,61 +53,159 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 
-import { Inverter, Panel } from "../_lib/data";
+import { Inverter, Panel, inverterSchema, panelSchema } from "../_lib/data";
+
+
+const EquipmentDialog: React.FC<{
+  type: "inverter" | "panel";
+  equipment?: Inverter | Panel | null;
+  onSave: (data: Inverter | Panel) => void;
+  children: React.ReactNode;
+}> = ({ type, equipment, onSave, children }) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const schema = type === 'inverter' ? inverterSchema : panelSchema;
+
+  const form = useForm<z.infer<typeof schema>>({
+    resolver: zodResolver(schema),
+  });
+
+  React.useEffect(() => {
+    if (isOpen) {
+      const defaultValues = type === 'inverter' 
+        ? { brand: "", model: "", serialNumber: "", warranty: "", dataloggerId: "" }
+        : { brand: "", model: "", power: 0, quantity: 0 };
+      form.reset(equipment || defaultValues);
+    }
+  }, [isOpen, equipment, form, type]);
+
+  const handleSubmit = (values: z.infer<typeof schema>) => {
+    onSave(values);
+    setIsOpen(false);
+  };
+  
+  const title = type === 'inverter' ? 'Inversor' : 'Painel Solar';
+  
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <HardDrive className="h-5 w-5" />
+            {equipment ? `Editar ${title}` : `Novo ${title}`}
+          </DialogTitle>
+           <DialogDescription>
+            {equipment ? "Atualize os dados do equipamento." : `Preencha os dados para cadastrar um novo ${title.toLowerCase()}.`}
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+            <form id="equipment-form" onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                {type === 'inverter' && (
+                    <>
+                        <FormField control={form.control} name="brand" render={({ field }) => (<FormItem><FormLabel>Marca</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage/></FormItem>)} />
+                        <FormField control={form.control} name="model" render={({ field }) => (<FormItem><FormLabel>Modelo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage/></FormItem>)} />
+                        <FormField control={form.control} name="serialNumber" render={({ field }) => (<FormItem><FormLabel>Nº de Série</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage/></FormItem>)} />
+                        <FormField control={form.control} name="warranty" render={({ field }) => (<FormItem><FormLabel>Garantia</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage/></FormItem>)} />
+                        <FormField control={form.control} name="dataloggerId" render={({ field }) => (<FormItem><FormLabel>ID Datalogger</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage/></FormItem>)} />
+                    </>
+                )}
+                {type === 'panel' && (
+                     <>
+                        <FormField control={form.control} name="brand" render={({ field }) => (<FormItem><FormLabel>Marca</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage/></FormItem>)} />
+                        <FormField control={form.control} name="model" render={({ field }) => (<FormItem><FormLabel>Modelo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage/></FormItem>)} />
+                        <FormField control={form.control} name="power" render={({ field }) => (<FormItem><FormLabel>Potência (Wp)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage/></FormItem>)} />
+                        <FormField control={form.control} name="quantity" render={({ field }) => (<FormItem><FormLabel>Quantidade</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage/></FormItem>)} />
+                    </>
+                )}
+            </form>
+        </Form>
+        <DialogFooter>
+          <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+          <Button type="submit" form="equipment-form">Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 
 interface EquipmentManagementProps {
   inverters: Inverter[];
   panels: Panel[];
+  onSaveInverter: (data: Inverter) => void;
+  onSavePanel: (data: Panel) => void;
+  onDeleteInverter: (id: string) => void;
+  onDeletePanel: (id: string) => void;
 }
 
-const InverterColumns: ColumnDef<Inverter>[] = [
+export function EquipmentManagement({ 
+    inverters, panels, onSaveInverter, onSavePanel, onDeleteInverter, onDeletePanel 
+}: EquipmentManagementProps) {
+  const [searchQuery, setSearchQuery] = React.useState("");
+
+  const getInverterColumns = (onSave: (data: Inverter) => void, onDelete: (id: string) => void): ColumnDef<Inverter>[] => [
     { accessorKey: "brand", header: "Marca" },
     { accessorKey: "model", header: "Modelo" },
     { accessorKey: "serialNumber", header: "Nº de Série" },
     { accessorKey: "dataloggerId", header: "ID Datalogger" },
     { accessorKey: "warranty", header: "Garantia" },
-    // In a real app, you would have a cell to show which client/installation it's assigned to.
     {
       id: "actions",
-      cell: ({ row }) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0"><MoreHorizontal className="h-4 w-4" /></Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem disabled><Edit className="mr-2 h-4 w-4" /> Editar (Em breve)</DropdownMenuItem>
-            <DropdownMenuItem disabled className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" /> Excluir (Em breve)</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
+      cell: ({ row }) => {
+          const inverter = row.original;
+          return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild><Button variant="ghost" className="h-8 w-8 p-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                 <EquipmentDialog type="inverter" equipment={inverter} onSave={onSave}>
+                    <button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">
+                        <Edit className="mr-2 h-4 w-4" /> Editar
+                    </button>
+                </EquipmentDialog>
+                <DropdownMenuItem onClick={() => onDelete(inverter.id!)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" /> Excluir</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )
+      },
     },
-];
+  ];
 
-const PanelColumns: ColumnDef<Panel>[] = [
+  const getPanelColumns = (onSave: (data: Panel) => void, onDelete: (id: string) => void): ColumnDef<Panel>[] => [
     { accessorKey: "brand", header: "Marca" },
     { accessorKey: "model", header: "Modelo" },
     { accessorKey: "power", header: "Potência (Wp)" },
     { accessorKey: "quantity", header: "Quantidade" },
     {
       id: "actions",
-      cell: ({ row }) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0"><MoreHorizontal className="h-4 w-4" /></Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem disabled><Edit className="mr-2 h-4 w-4" /> Editar (Em breve)</DropdownMenuItem>
-            <DropdownMenuItem disabled className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" /> Excluir (Em breve)</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
+      cell: ({ row }) => {
+          const panel = row.original;
+          return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild><Button variant="ghost" className="h-8 w-8 p-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <EquipmentDialog type="panel" equipment={panel} onSave={onSave}>
+                     <button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">
+                        <Edit className="mr-2 h-4 w-4" /> Editar
+                    </button>
+                </EquipmentDialog>
+                <DropdownMenuItem onClick={() => onDelete(panel.id!)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" /> Excluir</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )
+      },
     },
-];
-
-export function EquipmentManagement({ inverters, panels }: EquipmentManagementProps) {
-  const [searchQuery, setSearchQuery] = React.useState("");
+  ];
+  
 
   const filteredInverters = React.useMemo(() => 
     inverters.filter(inv => 
@@ -121,14 +222,14 @@ export function EquipmentManagement({ inverters, panels }: EquipmentManagementPr
 
   const inverterTable = useReactTable({
     data: filteredInverters,
-    columns: InverterColumns,
+    columns: getInverterColumns(onSaveInverter, onDeleteInverter),
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   });
   
   const panelTable = useReactTable({
     data: filteredPanels,
-    columns: PanelColumns,
+    columns: getPanelColumns(onSavePanel, onDeletePanel),
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   });
@@ -147,13 +248,14 @@ export function EquipmentManagement({ inverters, panels }: EquipmentManagementPr
               onChange={(event) => setSearchQuery(event.target.value)}
               className="max-w-sm"
             />
-             <Button disabled>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Novo Equipamento (Em breve)
-            </Button>
         </div>
       </div>
       <TabsContent value="inverters">
+        <div className="flex justify-end mb-4">
+             <EquipmentDialog type="inverter" onSave={onSaveInverter}>
+                <Button><PlusCircle className="mr-2 h-4 w-4" /> Novo Inversor</Button>
+             </EquipmentDialog>
+        </div>
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -175,7 +277,7 @@ export function EquipmentManagement({ inverters, panels }: EquipmentManagementPr
                   </TableRow>
                 ))
               ) : (
-                <TableRow><TableCell colSpan={InverterColumns.length} className="h-24 text-center">Nenhum inversor encontrado.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={getInverterColumns(onSaveInverter, onDeleteInverter).length} className="h-24 text-center">Nenhum inversor encontrado.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -186,6 +288,11 @@ export function EquipmentManagement({ inverters, panels }: EquipmentManagementPr
         </div>
       </TabsContent>
       <TabsContent value="panels">
+        <div className="flex justify-end mb-4">
+            <EquipmentDialog type="panel" onSave={onSavePanel}>
+                 <Button><PlusCircle className="mr-2 h-4 w-4" /> Novo Painel</Button>
+            </EquipmentDialog>
+        </div>
          <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -207,7 +314,7 @@ export function EquipmentManagement({ inverters, panels }: EquipmentManagementPr
                   </TableRow>
                 ))
               ) : (
-                <TableRow><TableCell colSpan={PanelColumns.length} className="h-24 text-center">Nenhum painel encontrado.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={getPanelColumns(onSavePanel, onDeletePanel).length} className="h-24 text-center">Nenhum painel encontrado.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -220,3 +327,5 @@ export function EquipmentManagement({ inverters, panels }: EquipmentManagementPr
     </Tabs>
   );
 }
+
+    
