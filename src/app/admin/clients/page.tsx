@@ -10,12 +10,14 @@ export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
 
   useEffect(() => {
-    let savedClients = localStorage.getItem('clients');
-    if (!savedClients || JSON.parse(savedClients).length === 0) {
+    const savedClientsRaw = localStorage.getItem('clients');
+    let savedClients = savedClientsRaw ? JSON.parse(savedClientsRaw) : [];
+
+    if (savedClients.length === 0) {
         localStorage.setItem('clients', JSON.stringify(initialClients));
-        savedClients = JSON.stringify(initialClients);
+        savedClients = initialClients;
     }
-    setClients(JSON.parse(savedClients));
+    setClients(savedClients);
   }, []);
 
   const saveClients = (updatedClients: Client[]) => {

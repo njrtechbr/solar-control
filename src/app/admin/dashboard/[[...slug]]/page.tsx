@@ -66,18 +66,18 @@ export default function DashboardPage() {
 
   useEffect(() => {
     // Load clients and installations from localStorage, or initialize with sample data
-    let savedClients = localStorage.getItem('clients');
-    if (!savedClients || JSON.parse(savedClients).length === 0) {
+    const savedClientsRaw = localStorage.getItem('clients');
+    if (!savedClientsRaw || JSON.parse(savedClientsRaw).length === 0) {
       localStorage.setItem('clients', JSON.stringify(initialClients));
     }
 
-    let savedInstallations = localStorage.getItem('installations');
-    if (!savedInstallations || JSON.parse(savedInstallations).length === 0) {
+    const savedInstallationsRaw = localStorage.getItem('installations');
+    let loadedInstallations = savedInstallationsRaw ? JSON.parse(savedInstallationsRaw) : [];
+    if (loadedInstallations.length === 0) {
       localStorage.setItem('installations', JSON.stringify(initialInstallations));
-      savedInstallations = JSON.stringify(initialInstallations);
+      loadedInstallations = initialInstallations;
     }
     
-    const loadedInstallations = JSON.parse(savedInstallations) as Installation[];
     const sampleReportKey = 'report_Maria Silva';
     if (!localStorage.getItem(sampleReportKey)) {
         localStorage.setItem(sampleReportKey, JSON.stringify(createSampleReport()));

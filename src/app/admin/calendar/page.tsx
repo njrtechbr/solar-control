@@ -9,12 +9,14 @@ export default function CalendarPage() {
     const [installations, setInstallations] = useState<Installation[]>([]);
 
     useEffect(() => {
-        let savedInstallations = localStorage.getItem('installations');
-        if (!savedInstallations || JSON.parse(savedInstallations).length === 0) {
+        const savedInstallationsRaw = localStorage.getItem('installations');
+        let savedInstallations = savedInstallationsRaw ? JSON.parse(savedInstallationsRaw) : [];
+
+        if (savedInstallations.length === 0) {
             localStorage.setItem('installations', JSON.stringify(initialInstallations));
-            savedInstallations = JSON.stringify(initialInstallations);
+            savedInstallations = initialInstallations;
         }
-        setInstallations(JSON.parse(savedInstallations));
+        setInstallations(savedInstallations);
     }, []);
 
     return <CalendarView installations={installations} />;

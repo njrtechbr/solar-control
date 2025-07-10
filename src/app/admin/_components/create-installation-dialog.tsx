@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { PlusCircle, User, Home, Building, Bolt, ChevronDown } from "lucide-react";
+import { z } from "zod";
 
 import {
   type Installation,
@@ -58,17 +59,17 @@ export function CreateInstallationDialog() {
   const [clients, setClients] = useState<Client[]>([]);
 
   useEffect(() => {
-    const savedInstallations = localStorage.getItem('installations');
-    if (savedInstallations) {
-      setInstallations(JSON.parse(savedInstallations));
-    }
+    const savedInstallationsRaw = localStorage.getItem('installations');
+    const savedInstallations = savedInstallationsRaw ? JSON.parse(savedInstallationsRaw) : [];
+    setInstallations(savedInstallations);
     
-    let savedClients = localStorage.getItem('clients');
-    if (!savedClients || JSON.parse(savedClients).length === 0) {
+    const savedClientsRaw = localStorage.getItem('clients');
+    let savedClients = savedClientsRaw ? JSON.parse(savedClientsRaw) : [];
+    if (savedClients.length === 0) {
         localStorage.setItem('clients', JSON.stringify(initialClients));
-        savedClients = JSON.stringify(initialClients);
+        savedClients = initialClients;
     }
-    setClients(JSON.parse(savedClients));
+    setClients(savedClients);
 
   }, []);
 

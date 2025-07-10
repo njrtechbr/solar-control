@@ -20,20 +20,19 @@ export default function InstallationListPage() {
 
   useEffect(() => {
     // Load installations
-    let savedInstallations = localStorage.getItem('installations');
-    if (!savedInstallations || JSON.parse(savedInstallations).length === 0) {
+    const savedInstallationsRaw = localStorage.getItem('installations');
+    let loadedInstallations = savedInstallationsRaw ? JSON.parse(savedInstallationsRaw) : [];
+    if (loadedInstallations.length === 0) {
         localStorage.setItem('installations', JSON.stringify(initialInstallations));
-        savedInstallations = JSON.stringify(initialInstallations);
+        loadedInstallations = initialInstallations;
     }
-    const loadedInstallations = JSON.parse(savedInstallations) as Installation[];
     
     // Load clients
-    let savedClients = localStorage.getItem('clients');
-    if (!savedClients || JSON.parse(savedClients).length === 0) {
+    const savedClientsRaw = localStorage.getItem('clients');
+    if (!savedClientsRaw || JSON.parse(savedClientsRaw).length === 0) {
         localStorage.setItem('clients', JSON.stringify(initialClients));
-        savedClients = JSON.stringify(initialClients);
     }
-    setClients(JSON.parse(savedClients));
+    setClients(savedClientsRaw ? JSON.parse(savedClientsRaw) : initialClients);
 
     // Handle sample report
     const sampleReportKey = 'report_Maria Silva';
