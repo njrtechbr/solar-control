@@ -193,7 +193,14 @@ export default function InstallationDetailPage() {
     if (editingEquipment) {
         equipmentForm.reset({ ...editingEquipment.data, type: editingEquipment.type });
     } else {
-        equipmentForm.reset({ type: 'inverter' });
+        equipmentForm.reset({ 
+            type: 'inverter',
+            brand: '',
+            model: '',
+            serialNumber: '',
+            warranty: '',
+            dataloggerId: ''
+        });
     }
   }, [editingEquipment, equipmentForm]);
 
@@ -966,18 +973,18 @@ export default function InstallationDetailPage() {
                                 )}/>
 
                                 {equipmentType === 'inverter' && (<>
-                                    <FormField control={equipmentForm.control} name="brand" render={({ field }) => (<FormItem><FormLabel>Marca</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
-                                    <FormField control={equipmentForm.control} name="model" render={({ field }) => (<FormItem><FormLabel>Modelo</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
-                                    <FormField control={equipmentForm.control} name="serialNumber" render={({ field }) => (<FormItem><FormLabel>Nº de Série</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
-                                    <FormField control={equipmentForm.control} name="warranty" render={({ field }) => (<FormItem><FormLabel>Garantia</FormLabel><FormControl><Input placeholder="Ex: 5 anos" {...field} /></FormControl></FormItem>)} />
-                                    <FormField control={equipmentForm.control} name="dataloggerId" render={({ field }) => (<FormItem><FormLabel>ID Datalogger</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                                    <FormField control={equipmentForm.control} name="brand" render={({ field }) => (<FormItem><FormLabel>Marca</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl></FormItem>)} />
+                                    <FormField control={equipmentForm.control} name="model" render={({ field }) => (<FormItem><FormLabel>Modelo</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl></FormItem>)} />
+                                    <FormField control={equipmentForm.control} name="serialNumber" render={({ field }) => (<FormItem><FormLabel>Nº de Série</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl></FormItem>)} />
+                                    <FormField control={equipmentForm.control} name="warranty" render={({ field }) => (<FormItem><FormLabel>Garantia</FormLabel><FormControl><Input placeholder="Ex: 5 anos" {...field} value={field.value ?? ''} /></FormControl></FormItem>)} />
+                                    <FormField control={equipmentForm.control} name="dataloggerId" render={({ field }) => (<FormItem><FormLabel>ID Datalogger</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl></FormItem>)} />
                                 </>)}
                                 
                                 {equipmentType === 'panel' && (<>
-                                    <FormField control={equipmentForm.control} name="brand" render={({ field }) => (<FormItem><FormLabel>Marca</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
-                                    <FormField control={equipmentForm.control} name="model" render={({ field }) => (<FormItem><FormLabel>Modelo</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
-                                    <FormField control={equipmentForm.control} name="power" render={({ field }) => (<FormItem><FormLabel>Potência (Wp)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
-                                    <FormField control={equipmentForm.control} name="quantity" render={({ field }) => (<FormItem><FormLabel>Quantidade</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
+                                    <FormField control={equipmentForm.control} name="brand" render={({ field }) => (<FormItem><FormLabel>Marca</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl></FormItem>)} />
+                                    <FormField control={equipmentForm.control} name="model" render={({ field }) => (<FormItem><FormLabel>Modelo</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl></FormItem>)} />
+                                    <FormField control={equipmentForm.control} name="power" render={({ field }) => (<FormItem><FormLabel>Potência (Wp)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl></FormItem>)} />
+                                    <FormField control={equipmentForm.control} name="quantity" render={({ field }) => (<FormItem><FormLabel>Quantidade</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl></FormItem>)} />
                                 </>)}
 
                             </form>
@@ -1209,5 +1216,3 @@ export default function InstallationDetailPage() {
     </div>
   );
 }
-
-    
