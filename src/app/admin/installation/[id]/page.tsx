@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format, isPast, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Video, Bolt, Clock, CheckCircle, XCircle, FileText, Activity, FileJson, Files, Upload, Hourglass, Send, ThumbsUp, ThumbsDown, Archive, ArchiveRestore, Link as LinkIcon, Printer } from "lucide-react";
+import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Video, Bolt, Clock, CheckCircle, XCircle, FileText, Activity, FileJson, Files, Upload, Hourglass, Send, ThumbsUp, ThumbsDown, Archive, ArchiveRestore, Link as LinkIcon, Printer, CircuitBoard } from "lucide-react";
 import Link from "next/link";
 
 import { type Installation, InstallationStatus, ProjectStatus, HomologationStatus } from "@/app/admin/page";
@@ -470,6 +470,18 @@ export default function InstallationDetailPage() {
   const canBeArchived = !installation.archived && (installation.status === 'Concluído' || installation.status === 'Cancelado');
   const isArchivable = installation.archived || canBeArchived;
 
+  const equipmentDetails = [
+    { label: "Marca do Inversor", value: installation.inverterBrand },
+    { label: "Modelo do Inversor", value: installation.inverterModel },
+    { label: "Nº de Série do Inversor", value: installation.inverterSerialNumber },
+    { label: "Garantia do Inversor", value: installation.inverterWarranty },
+    { label: "ID do Datalogger", value: installation.dataloggerId },
+    { label: "Marca do Painel", value: installation.panelBrand },
+    { label: "Modelo do Painel", value: installation.panelModel },
+    { label: "Potência do Painel", value: installation.panelPower ? `${installation.panelPower} Wp` : 'N/A' },
+    { label: "Quantidade de Painéis", value: installation.panelQuantity },
+  ];
+
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -860,6 +872,30 @@ export default function InstallationDetailPage() {
                         <span>Protocolo: {installation.protocolNumber || "N/A"}</span>
                     </div>
                 </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CircuitBoard className="h-5 w-5 text-primary" />
+                  Equipamentos
+                </CardTitle>
+                <CardDescription>Detalhes dos componentes da instalação.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-48">
+                    <div className="space-y-3 text-sm pr-4">
+                        {equipmentDetails.map(item => (
+                            item.value ? (
+                                <div key={item.label} className="flex justify-between border-b pb-1">
+                                    <span className="text-muted-foreground">{item.label}</span>
+                                    <span className="font-medium text-right">{item.value}</span>
+                                </div>
+                            ) : null
+                        ))}
+                    </div>
+                </ScrollArea>
+              </CardContent>
             </Card>
 
              <Card>

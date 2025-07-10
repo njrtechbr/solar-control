@@ -46,13 +46,27 @@ import { toast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   clientName: z.string().min(1, "O nome do cliente é obrigatório."),
+  
+  // Equipment
+  inverterBrand: z.string().optional(),
+  inverterModel: z.string().optional(),
+  inverterSerialNumber: z.string().optional(),
+  inverterWarranty: z.string().optional(),
+  dataloggerId: z.string().optional(),
+  panelBrand: z.string().optional(),
+  panelModel: z.string().optional(),
   panelPower: z.coerce.number().positive().optional(),
+  panelQuantity: z.coerce.number().positive().optional(),
+
+  // VCC
   strings: z.array(
     z.object({
       voltage: z.coerce.number().optional(),
       plates: z.coerce.number().optional(),
     })
   ),
+  
+  // CA
   phase1Neutro: z.coerce.number().optional(),
   phase2Neutro: z.coerce.number().optional(),
   phase3Neutro: z.coerce.number().optional(),
@@ -61,10 +75,14 @@ const formSchema = z.object({
   phase2phase3: z.coerce.number().optional(),
   phaseTerra: z.coerce.number().optional(),
   neutroTerra: z.coerce.number().optional(),
+
+  // Cabling
   cableMeterToBreaker: z.string().optional(),
   cableBreakerToInverter: z.string().optional(),
   generalBreaker: z.string().optional(),
   inverterBreaker: z.string().optional(),
+
+  // Final Check
   dataloggerConnected: z.boolean().default(false),
   observations: z.string().optional(),
   photo_uploads: z.array(z.object({ 
@@ -192,15 +210,37 @@ export default function InstallationForm({ clientName }: { clientName: string })
                         </FormItem>
                       )}
                     />
-                    <FormField control={form.control} name="panelPower" render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Potência do Painel (Wp)</FormLabel>
-                          <FormControl><Input type="number" placeholder="Ex: 550" {...field} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                   </div>
+                </AccordionContent>
+              </AccordionItem>
+              
+              <AccordionItem value="equipment-details">
+                <AccordionTrigger>
+                  <div className="flex items-center gap-3">
+                    <CircuitBoard className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">Detalhes dos Equipamentos</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pt-4 space-y-4">
+                    <div className="rounded-lg border p-4 space-y-4">
+                      <h4 className="font-medium">Inversor</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField control={form.control} name="inverterBrand" render={({ field }) => (<FormItem><FormLabel>Marca</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                        <FormField control={form.control} name="inverterModel" render={({ field }) => (<FormItem><FormLabel>Modelo</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                        <FormField control={form.control} name="inverterSerialNumber" render={({ field }) => (<FormItem><FormLabel>Nº de Série</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                        <FormField control={form.control} name="inverterWarranty" render={({ field }) => (<FormItem><FormLabel>Garantia</FormLabel><FormControl><Input placeholder="Ex: 5 anos" {...field} /></FormControl></FormItem>)} />
+                        <FormField control={form.control} name="dataloggerId" render={({ field }) => (<FormItem><FormLabel>ID Datalogger</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                      </div>
+                    </div>
+                     <div className="rounded-lg border p-4 space-y-4">
+                      <h4 className="font-medium">Painéis Solares</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField control={form.control} name="panelBrand" render={({ field }) => (<FormItem><FormLabel>Marca</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                        <FormField control={form.control} name="panelModel" render={({ field }) => (<FormItem><FormLabel>Modelo</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                        <FormField control={form.control} name="panelPower" render={({ field }) => (<FormItem><FormLabel>Potência (Wp)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
+                        <FormField control={form.control} name="panelQuantity" render={({ field }) => (<FormItem><FormLabel>Quantidade</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
+                      </div>
+                    </div>
                 </AccordionContent>
               </AccordionItem>
 
@@ -364,5 +404,3 @@ export default function InstallationForm({ clientName }: { clientName: string })
     </div>
   );
 }
-
-    
