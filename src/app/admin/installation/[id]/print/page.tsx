@@ -24,27 +24,29 @@ export default function PrintInstallationPage() {
     const [clientQrCodeValue, setClientQrCodeValue] = useState('');
 
     useEffect(() => {
-        if (typeof window !== 'undefined' && installation) {
-            const installerUrl = `${window.location.origin}/?client=${encodeURIComponent(installation.clientName)}`;
-            setInstallerQrCodeValue(installerUrl);
-            
-            const clientUrl = `${window.location.origin}/status/${installation.id}`;
-            setClientQrCodeValue(clientUrl);
-        }
-
         if (id) {
             const allInstallations: Installation[] = JSON.parse(localStorage.getItem('installations') || '[]');
             const currentInstallation = allInstallations.find(inst => inst.id === Number(id));
-            setInstallation(currentInstallation || null);
+            if (currentInstallation) {
+                setInstallation(currentInstallation);
 
-            if (currentInstallation?.reportSubmitted) {
-                const reportData = localStorage.getItem(`report_${currentInstallation.clientName}`);
-                if (reportData) {
-                    setInstallerReport(JSON.parse(reportData));
+                if (currentInstallation.reportSubmitted) {
+                    const reportData = localStorage.getItem(`report_${currentInstallation.clientName}`);
+                    if (reportData) {
+                        setInstallerReport(JSON.parse(reportData));
+                    }
+                }
+
+                if (typeof window !== 'undefined') {
+                    const installerUrl = `${window.location.origin}/?client=${encodeURIComponent(currentInstallation.clientName)}`;
+                    setInstallerQrCodeValue(installerUrl);
+                    
+                    const clientUrl = `${window.location.origin}/status/${currentInstallation.id}`;
+                    setClientQrCodeValue(clientUrl);
                 }
             }
         }
-    }, [id, installation]);
+    }, [id]);
 
     const handlePrint = () => {
         window.print();
@@ -265,5 +267,3 @@ export default function PrintInstallationPage() {
         </div>
     );
 }
-
-    
