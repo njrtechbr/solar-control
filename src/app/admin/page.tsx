@@ -6,7 +6,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { User, SunMedium, Home, Building, Bolt, PlusCircle, LayoutDashboard, ListChecks, FileText, CheckCircle, List, Calendar, CircuitBoard } from "lucide-react";
+import { User, SunMedium, Home, Building, Bolt, PlusCircle, LayoutDashboard, ListChecks, FileText, CheckCircle, List, Calendar, CircuitBoard, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -36,7 +36,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarView } from "./_components/calendar-view";
-import { Textarea } from "@/components/ui/textarea";
+import { EquipmentSearch } from "./_components/equipment-search";
 
 
 export const InstallationStatus = z.enum(["Pendente", "Agendado", "Em Andamento", "Concluído", "Cancelado"]);
@@ -447,6 +447,49 @@ export default function AdminPage() {
     });
   };
 
+  const handleEquipmentTransfer = (sourceInstallationId: number, destInstallationId: number, inverter: Inverter) => {
+    let allInstallations = [...installations];
+    
+    const sourceIndex = allInstallations.findIndex(inst => inst.id === sourceInstallationId);
+    const destIndex = allInstallations.findIndex(inst => inst.id === destInstallationId);
+
+    if (sourceIndex === -1 || destIndex === -1) {
+        toast({ title: "Erro na transferência", description: "Instalação de origem ou destino não encontrada.", variant: "destructive" });
+        return;
+    }
+
+    const sourceInstallation = { ...allInstallations[sourceIndex] };
+    const destInstallation = { ...allInstallations[destIndex] };
+    
+    // Remove from source
+    sourceInstallation.inverters = (sourceInstallation.inverters || []).filter(inv => inv.id !== inverter.id);
+    const sourceEvent = {
+        id: new Date().toISOString() + "_transfer_out",
+        date: new Date().toISOString(),
+        type: 'Nota',
+        description: `Inversor ${inverter.brand} ${inverter.model} (S/N: ${inverter.serialNumber}) transferido para a instalação de ${destInstallation.clientName}.`,
+        attachments: [],
+    };
+    sourceInstallation.events = [...(sourceInstallation.events || []), sourceEvent].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    allInstallations[sourceIndex] = sourceInstallation;
+
+    // Add to destination
+    destInstallation.inverters = [...(destInstallation.inverters || []), inverter];
+    const destEvent = {
+        id: new Date().toISOString() + "_transfer_in",
+        date: new Date().toISOString(),
+        type: 'Nota',
+        description: `Inversor ${inverter.brand} ${inverter.model} (S/N: ${inverter.serialNumber}) recebido da instalação de ${sourceInstallation.clientName}.`,
+        attachments: [],
+    };
+    destInstallation.events = [...(destInstallation.events || []), destEvent].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    allInstallations[destIndex] = destInstallation;
+
+    saveInstallations(allInstallations);
+    toast({ title: "Transferência Concluída!", description: `Inversor movido para ${destInstallation.clientName}.` });
+  };
+
+
   const tableColumns = useMemo(() => getColumns(handleArchiveToggle), []);
 
   const handleSearch = (value: string) => {
@@ -579,6 +622,7 @@ export default function AdminPage() {
                     <TabsTrigger value="report-status"><FileText className="mr-2 h-4 w-4" />Status do Relatório</TabsTrigger>
                     <TabsTrigger value="calendar-view"><Calendar className="mr-2 h-4 w-4" />Calendário</TabsTrigger>
                     <TabsTrigger value="list-view"><List className="mr-2 h-4 w-4" />Lista Completa</TabsTrigger>
+                    <TabsTrigger value="equipment-search"><Search className="mr-2 h-4 w-4" />Busca de Equipamento</TabsTrigger>
                 </TabsList>
                 <div className="flex-grow overflow-auto">
                     <TabsContent value="installation-status" className="h-full">
@@ -634,6 +678,12 @@ export default function AdminPage() {
                             filters={filters}
                         />
                     </TabsContent>
+                    <TabsContent value="equipment-search" className="h-full">
+                        <EquipmentSearch 
+                            installations={installations} 
+                            onEquipmentTransfer={handleEquipmentTransfer}
+                        />
+                    </TabsContent>
                 </div>
             </Tabs>
         </main>
@@ -641,5 +691,3 @@ export default function AdminPage() {
     </>
   );
 }
-
-    
