@@ -43,7 +43,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { inverterSchema, panelSchema } from "../admin/page";
+import { inverterSchema, panelSchema } from "@/app/admin/_lib/data";
 
 
 const formSchema = z.object({
@@ -401,5 +401,3 @@ export default function InstallationForm({ clientName }: { clientName: string })
     </div>
   );
 }
-
-    
