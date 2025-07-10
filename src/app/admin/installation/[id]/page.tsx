@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format, isPast, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Video, Bolt, Clock, CheckCircle, XCircle, FileText, Activity, FileJson, Files, Upload, ListChecks, Hourglass, Send, ThumbsUp, ThumbsDown, Archive, ArchiveRestore, Link as LinkIcon, Printer } from "lucide-react";
+import { ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, MessageSquare, Check, Sparkles, Copy, FileCheck2, Video, Bolt, Clock, CheckCircle, XCircle, FileText, Activity, FileJson, Files, Upload, Hourglass, Send, ThumbsUp, ThumbsDown, Archive, ArchiveRestore, Link as LinkIcon, Printer } from "lucide-react";
 import Link from "next/link";
 
 import { type Installation, InstallationStatus, ProjectStatus, HomologationStatus } from "@/app/admin/page";
@@ -487,15 +487,15 @@ export default function InstallationDetailPage() {
         </div>
         <div className="flex items-center gap-2">
              <Link href={`/admin/installation/${id}/print`} passHref>
-                <Button variant="link" className="p-0 h-auto">
-                    Imprimir
+                <Button variant="link" className="p-0 h-auto hidden sm:flex">
+                    <Printer className="mr-2 h-4 w-4" /> Imprimir
                 </Button>
             </Link>
             <AlertDialog>
                 <AlertDialogTrigger asChild>
                     <Button variant="outline" disabled={!isArchivable}>
                         {installation.archived ? <ArchiveRestore className="mr-2 h-4 w-4" /> : <Archive className="mr-2 h-4 w-4" />}
-                        {installation.archived ? "Desarquivar" : "Arquivar"}
+                        <span className="hidden sm:inline">{installation.archived ? "Desarquivar" : "Arquivar"}</span>
                     </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -518,11 +518,11 @@ export default function InstallationDetailPage() {
             </AlertDialog>
             <Button variant="secondary" onClick={handleCopyInstallerLink}>
                 <Wrench className="mr-2 h-4 w-4" />
-                Link Instalador
+                <span className="hidden md:inline">Link Instalador</span>
             </Button>
             <Button variant="secondary" onClick={handleCopyStatusLink}>
                 <LinkIcon className="mr-2 h-4 w-4" />
-                Link Cliente
+                <span className="hidden md:inline">Link Cliente</span>
             </Button>
         </div>
       </header>
@@ -539,7 +539,7 @@ export default function InstallationDetailPage() {
                   <div className="flex items-center space-x-2 md:space-x-4 overflow-x-auto pb-4">
                     {processSteps.map((step, index) => (
                       <div key={step.name} className="flex items-center w-full">
-                        <div className="flex flex-col items-center">
+                        <div className="flex flex-col items-center text-center">
                           <div className={cn(
                             "flex h-10 w-10 items-center justify-center rounded-full border-2",
                             step.status === "completed" && "bg-primary border-primary text-primary-foreground",
@@ -549,14 +549,14 @@ export default function InstallationDetailPage() {
                           )}>
                             <step.Icon className="h-5 w-5" />
                           </div>
-                          <div className="mt-2 text-center">
-                            <p className="font-semibold text-sm">{step.name}</p>
-                            <p className="text-xs text-muted-foreground">{step.description}</p>
+                          <div className="mt-2 w-24">
+                            <p className="font-semibold text-sm truncate">{step.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{step.description}</p>
                           </div>
                         </div>
                         {index < processSteps.length - 1 && (
                           <div className={cn(
-                            "flex-auto border-t-2 h-0",
+                            "flex-auto border-t-2 h-0 -mx-2",
                             step.status === "completed" ? "border-primary" : "border-border"
                           )} />
                         )}
@@ -757,28 +757,25 @@ export default function InstallationDetailPage() {
                                         <p className="mt-4">Nenhum anexo encontrado.</p>
                                     </div>
                                 ) : (
-                                    <div className="space-y-4">
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                         {allAttachments.map(att => (
-                                            <div key={att.id} className="flex items-center gap-4 p-2 border rounded-md">
-                                                <div className="flex-shrink-0">
-                                                    {att.type === 'image' ? (
-                                                        <a href={att.dataUrl} target="_blank" rel="noopener noreferrer">
-                                                            <img src={att.dataUrl} alt={att.name} className="h-16 w-16 object-cover rounded-md" />
-                                                        </a>
-                                                    ) : att.type === 'video' ? (
-                                                        <Video className="h-16 w-16 text-muted-foreground p-2 border rounded-md" />
-                                                    ) : (
-                                                        <Paperclip className="h-16 w-16 text-muted-foreground p-2 border rounded-md" />
-                                                    )}
+                                            <a key={att.id} href={att.dataUrl} download={att.name} target="_blank" rel="noopener noreferrer" className="group relative block border rounded-lg overflow-hidden">
+                                                {att.type === 'image' ? (
+                                                     <img src={att.dataUrl} alt={att.name} className="h-40 w-full object-cover transition-transform group-hover:scale-105" />
+                                                ) : att.type === 'video' ? (
+                                                    <div className="h-40 w-full bg-muted flex items-center justify-center">
+                                                        <Video className="h-16 w-16 text-muted-foreground" />
+                                                    </div>
+                                                ) : (
+                                                    <div className="h-40 w-full bg-muted flex items-center justify-center">
+                                                        <Paperclip className="h-16 w-16 text-muted-foreground" />
+                                                    </div>
+                                                )}
+                                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 text-white">
+                                                    <p className="text-xs font-semibold truncate">{att.name}</p>
+                                                     <p className="text-xs opacity-80 truncate">{att.source}</p>
                                                 </div>
-                                                <div className="flex-grow text-sm">
-                                                    <a href={att.dataUrl} download={att.name} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline truncate block">
-                                                        {att.name}
-                                                    </a>
-                                                    <p className="text-muted-foreground">{att.source}</p>
-                                                    <p className="text-xs text-muted-foreground">{format(new Date(att.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
-                                                </div>
-                                            </div>
+                                            </a>
                                         ))}
                                     </div>
                                 )}
