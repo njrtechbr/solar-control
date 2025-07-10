@@ -12,13 +12,14 @@ import {
     ArrowLeft, Building, Home, MapPin, Plus, Paperclip, AlertCircle, Wrench, Calendar as CalendarIcon, 
     MessageSquare, Check, Sparkles, Copy, FileCheck2, Video, Bolt, Clock, CheckCircle, XCircle, FileText, 
     Activity, FileJson, Files, Upload, Hourglass, Send, ThumbsUp, ThumbsDown, Archive, ArchiveRestore, 
-    Link as LinkIcon, Printer, CircuitBoard, Trash2, Edit, Save 
+    Link as LinkIcon, Printer, CircuitBoard, Trash2, Edit, Save, Users
 } from "lucide-react";
 import Link from "next/link";
 
 import { 
     type Installation, InstallationStatus, ProjectStatus, HomologationStatus, 
-    type Inverter, type Panel, inverterSchema, panelSchema, initialInverters, initialPanels
+    type Inverter, type Panel, inverterSchema, panelSchema, initialInverters, initialPanels,
+    type Client, initialClients
 } from "@/app/admin/_lib/data";
 import { Button } from "@/components/ui/button";
 import {
@@ -222,6 +223,7 @@ export default function InstallationDetailPage() {
   const { id } = params;
 
   const [installation, setInstallation] = useState<Installation | null>(null);
+  const [clients, setClients] = useState<Client[]>([]);
   const [isEventDialogOpen, setEventDialogOpen] = useState(false);
   const [isScheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [isDocumentDialogOpen, setDocumentDialogOpen] = useState(false);
@@ -247,6 +249,8 @@ export default function InstallationDetailPage() {
         }
       }
     }
+    const allClients: Client[] = JSON.parse(localStorage.getItem('clients') || '[]');
+    setClients(allClients);
   }, [id]);
 
   const eventForm = useForm<EventValues>({
@@ -497,6 +501,36 @@ export default function InstallationDetailPage() {
   const handleSaveAllocation = (updatedInstallation: Installation) => {
      updateInstallation(updatedInstallation, { title: "Equipamentos Alocados!", description: "Os equipamentos foram salvos nesta instalação." });
   }
+
+  const handleClientChange = (newClientId: string) => {
+    if (!installation) return;
+    const selectedClient = clients.find(c => c.id === Number(newClientId));
+    if (!selectedClient) return;
+
+    const oldClientName = installation.clientName;
+    const updatedInstallation: Installation = {
+        ...installation,
+        clientId: selectedClient.id!,
+        clientName: selectedClient.name,
+        address: selectedClient.address,
+        city: selectedClient.city,
+        state: selectedClient.state,
+        zipCode: selectedClient.zipCode,
+    };
+
+    const eventDescription = `Cliente da instalação alterado de "${oldClientName}" para "${selectedClient.name}".`;
+    const newEvent = {
+      id: new Date().toISOString() + "_client_change",
+      date: new Date().toISOString(),
+      type: 'Nota',
+      description: eventDescription,
+      attachments: [],
+    };
+    updatedInstallation.events = [...(updatedInstallation.events || []), newEvent].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    updateInstallation(updatedInstallation, { title: "Cliente Atualizado!", description: `A instalação foi associada a ${selectedClient.name}.` });
+  };
+
 
   if (!installation) {
     return (
@@ -973,14 +1007,32 @@ export default function InstallationDetailPage() {
         </div>
         <div className="lg:col-span-1 space-y-6">
             <Card>
-                <CardHeader className="flex flex-row items-center gap-4">
-                    <Icon className="h-8 w-8 text-muted-foreground" />
-                    <div>
-                        <CardTitle>{installation.clientName}</CardTitle>
-                        <CardDescription>{installation.installationType === "residencial" ? "Residencial" : "Comercial"}</CardDescription>
+                <CardHeader>
+                    <div className="flex items-center gap-4">
+                        <Icon className="h-8 w-8 text-muted-foreground" />
+                        <div>
+                            <CardTitle>{installation.clientName}</CardTitle>
+                            <CardDescription>{installation.installationType === "residencial" ? "Residencial" : "Comercial"}</CardDescription>
+                        </div>
                     </div>
                 </CardHeader>
-                <CardContent className="text-sm space-y-2">
+                <CardContent className="text-sm space-y-4">
+                    <div className="space-y-1.5">
+                        <Label className="flex items-center gap-2 text-muted-foreground"><Users className="h-4 w-4"/> Cliente</Label>
+                        <Select onValueChange={handleClientChange} value={String(installation.clientId)}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Selecione um cliente..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {clients.map(client => (
+                                    <SelectItem key={client.id} value={String(client.id!)}>
+                                        {client.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
                     <div className="flex items-start gap-2">
                         <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground"/>
                         <span>{installation.address}, {installation.city} - {installation.state}</span>
