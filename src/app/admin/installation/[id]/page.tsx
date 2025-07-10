@@ -374,11 +374,18 @@ export default function InstallationDetailPage() {
     const updatedInstallation = { ...installation, [statusType]: newStatus as any };
 
     // Create a new event for the change
+    const statusLabels: { [key: string]: string } = {
+      status: "Status da Instalação",
+      projectStatus: "Status do Projeto",
+      homologationStatus: "Status da Homologação",
+    };
+    const statusLabel = statusLabels[statusType] || `Status de '${statusType}'`;
+
     const newEvent = {
       id: new Date().toISOString(),
       date: new Date().toISOString(),
       type: "Nota",
-      description: `Status de '${statusType}' alterado de "${oldStatus}" para "${newStatus}".`,
+      description: `${statusLabel} alterado de "${oldStatus}" para "${newStatus}".`,
       attachments: [],
     };
     
@@ -386,7 +393,7 @@ export default function InstallationDetailPage() {
 
     updateInstallation(updatedInstallation, {
         title: "Status Atualizado!",
-        description: `O ${statusType} foi atualizado para "${newStatus}".`
+        description: `O ${statusLabel} foi atualizado para "${newStatus}".`
     });
     
     setTimeout(() => setIsSubmitting(false), 500); // Prevent rapid changes
@@ -1099,8 +1106,8 @@ export default function InstallationDetailPage() {
                 </ScrollArea>
               </CardContent>
             </Card>
-
-             <Card>
+            
+            <Card>
                 <CardHeader>
                     <CardTitle>Status Gerais</CardTitle>
                     <CardDescription>Gerencie o andamento da instalação.</CardDescription>
