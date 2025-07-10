@@ -60,8 +60,9 @@ export function CreateInstallationDialog() {
 
   useEffect(() => {
     const savedInstallationsRaw = localStorage.getItem('installations');
-    const savedInstallations = savedInstallationsRaw ? JSON.parse(savedInstallationsRaw) : [];
-    setInstallations(savedInstallations);
+    if (savedInstallationsRaw) {
+        setInstallations(JSON.parse(savedInstallationsRaw));
+    }
     
     const savedClientsRaw = localStorage.getItem('clients');
     let savedClients = savedClientsRaw ? JSON.parse(savedClientsRaw) : [];
