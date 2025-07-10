@@ -165,8 +165,8 @@ function StatusColumn({ category, title, statuses, config, setConfig }: StatusCo
       setConfig(prev => ({...prev, [category]: updatedStatuses}));
   }
 
-  const handleDeleteStatus = (statusToDelete: string) => {
-      const updatedStatuses = statuses.filter(s => s !== statusToDelete);
+  const handleDeleteStatus = (category: StatusCategory, statusToDelete: string) => {
+      const updatedStatuses = config[category].filter(s => s !== statusToDelete);
       setConfig(prev => ({...prev, [category]: updatedStatuses}));
   }
 
