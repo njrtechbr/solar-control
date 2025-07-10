@@ -24,6 +24,7 @@ import { KanbanCard } from './kanban-card';
 import { Badge } from '@/components/ui/badge';
 import { FileCheck2, Home, Building, CheckCircle, Bolt, Hourglass, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 
 export type KanbanColumnType = {
@@ -132,17 +133,20 @@ export function KanbanBoard({ installations, columns, onItemMove, statusType }: 
       onDragOver={onDragOver}
       collisionDetection={closestCorners}
     >
-      <div className={`grid grid-cols-${columns.length} gap-4`}>
-        <SortableContext items={columnsId}>
-          {columns.map((col) => (
-            <KanbanColumn
-              key={col.id}
-              column={col}
-              installations={installations.filter((inst) => getStatusForInstallation(inst) === col.id)}
-            />
-          ))}
-        </SortableContext>
-      </div>
+        <ScrollArea className="w-full whitespace-nowrap">
+            <div className="grid grid-flow-col auto-cols-[280px] gap-4 p-1">
+                <SortableContext items={columnsId}>
+                {columns.map((col) => (
+                    <KanbanColumn
+                    key={col.id}
+                    column={col}
+                    installations={installations.filter((inst) => getStatusForInstallation(inst) === col.id)}
+                    />
+                ))}
+                </SortableContext>
+            </div>
+            <ScrollBar orientation="horizontal" />
+        </ScrollArea>
 
       {isMounted && createPortal(
         <DragOverlay>

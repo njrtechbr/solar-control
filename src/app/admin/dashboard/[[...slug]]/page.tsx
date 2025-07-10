@@ -139,11 +139,11 @@ export default function DashboardPage() {
   const activeInstallations = installations.filter(inst => !inst.archived);
   
   if (!isMounted) {
-      return <div>Carregando...</div>
+      return <div className="p-6">Carregando...</div>
   }
 
   return (
-    <div className="h-full w-full">
+    <div className="h-[calc(100vh-4rem)] flex flex-col">
       <KanbanBoard 
         installations={activeInstallations} 
         columns={config.columns}
