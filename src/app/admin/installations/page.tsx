@@ -18,6 +18,8 @@ import { toast } from "@/hooks/use-toast";
 export default function InstallationListPage() {
   const [installations, setInstallations] = useState<Installation[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
+  const searchParams = useSearchParams();
+  const [filters, setFilters] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     // Load installations
@@ -65,6 +67,12 @@ export default function InstallationListPage() {
         return { ...inst, reportSubmitted: !!report };
     });
     setInstallations(updatedInstallations);
+    
+    // Set initial filter from URL
+    const clientIdFilter = searchParams.get('clientId');
+    if (clientIdFilter) {
+      setFilters(prev => ({ ...prev, clientId: clientIdFilter }));
+    }
 
   }, []);
 
@@ -90,19 +98,7 @@ export default function InstallationListPage() {
     });
   };
 
-  const tableColumns = useMemo(() => getColumns(handleArchiveToggle), [installations]);
-  
-  const searchParams = useSearchParams();
-  const clientIdFilter = searchParams.get('clientId');
-
-  const [filters, setFilters] = useState<{ [key: string]: string }>({});
-
-  useEffect(() => {
-    if (clientIdFilter) {
-      setFilters(prev => ({ ...prev, clientId: clientIdFilter }));
-    }
-  }, [clientIdFilter]);
-
+  const tableColumns = useMemo(() => getColumns(handleArchiveToggle), []);
 
   const handleSearch = (value: string) => {
     setFilters(prev => ({ ...prev, global: value }));
@@ -115,21 +111,18 @@ export default function InstallationListPage() {
   const resetFilters = () => setFilters({});
 
   const filteredInstallations = useMemo(() => {
-    let filtered = [...installations];
-    
-    if (filters.clientId) {
-      filtered = filtered.filter(inst => String(inst.clientId) === filters.clientId);
-    }
-    
-    const globalFilter = filters['global']?.toLowerCase();
-    if (globalFilter) {
-      filtered = filtered.filter(inst => 
+    return installations.filter(inst => {
+      const globalFilter = filters.global?.toLowerCase();
+      const clientFilter = filters.clientId;
+
+      const matchesGlobal = !globalFilter || 
         inst.clientName.toLowerCase().includes(globalFilter) ||
-        inst.city.toLowerCase().includes(globalFilter)
-      );
-    }
-    
-    return filtered;
+        inst.city.toLowerCase().includes(globalFilter);
+      
+      const matchesClient = !clientFilter || String(inst.clientId) === clientFilter;
+
+      return matchesGlobal && matchesClient;
+    });
   }, [installations, filters]);
 
   return (
