@@ -8,7 +8,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { SunMedium, Printer, ArrowLeft, Building, Home, MapPin, Bolt, FileText, Calendar, User, Info, CheckCircle, FileCheck, Power, Link as LinkIcon, CircuitBoard } from "lucide-react";
 
-import { type Installation } from "@/app/admin/page";
+import { type Installation } from "@/app/admin/_lib/data";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";

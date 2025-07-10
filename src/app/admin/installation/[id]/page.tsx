@@ -19,7 +19,7 @@ import Link from "next/link";
 import { 
     type Installation, InstallationStatus, ProjectStatus, HomologationStatus, 
     type Inverter, type Panel, inverterSchema, panelSchema 
-} from "@/app/admin/page";
+} from "@/app/admin/_lib/data";
 import { Button } from "@/components/ui/button";
 import {
   Card,

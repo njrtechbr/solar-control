@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { SunMedium, CheckCircle, Hourglass, Send, ThumbsUp, ThumbsDown, Calendar as CalendarIcon, Bolt, FileText, XCircle, MessageSquare } from "lucide-react";
 
-import { type Installation } from "@/app/admin/page";
+import { type Installation } from "@/app/admin/_lib/data";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
