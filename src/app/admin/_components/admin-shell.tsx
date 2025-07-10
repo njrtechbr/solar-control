@@ -84,6 +84,11 @@ const menuItems = [
         icon: Search,
         label: 'Busca de Equipamento',
       },
+       {
+        href: '/admin/settings',
+        icon: Settings,
+        label: 'Configurações',
+      },
     ],
   },
 ];

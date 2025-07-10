@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -11,57 +11,23 @@ import {
   initialInstallations,
   createSampleReport,
   type Client,
-  initialClients
+  initialClients,
+  type StatusConfig,
+  defaultStatusConfig
 } from '@/app/admin/_lib/data';
 
-import { KanbanBoard } from '@/app/admin/_components/kanban-board';
+import { KanbanBoard, type KanbanColumnType } from '@/app/admin/_components/kanban-board';
 import { toast } from '@/hooks/use-toast';
 
-const KANBAN_CONFIG = {
-  installation: {
-    columns: [
-      { id: 'Pendente', title: 'Pendente' },
-      { id: 'Agendado', title: 'Agendado' },
-      { id: 'Em Andamento', title: 'Em Andamento' },
-      { id: 'Concluído', title: 'Concluído' },
-      { id: 'Cancelado', title: 'Cancelado' },
-    ],
-    statusType: 'status' as keyof Installation,
-  },
-  project: {
-    columns: [
-      { id: 'Não Enviado', title: 'Não Enviado' },
-      { id: 'Enviado para Análise', title: 'Em Análise' },
-      { id: 'Aprovado', title: 'Aprovado' },
-      { id: 'Reprovado', title: 'Reprovado' },
-    ],
-    statusType: 'projectStatus' as keyof Installation,
-  },
-  homologation: {
-    columns: [
-      { id: 'Pendente', title: 'Pendente' },
-      { id: 'Aprovado', title: 'Aprovado' },
-      { id: 'Reprovado', title: 'Reprovado' },
-    ],
-    statusType: 'homologationStatus' as keyof Installation,
-  },
-  report: {
-     columns: [
-      { id: 'Enviado', title: 'Enviado' },
-      { id: 'Pendente', title: 'Pendente' },
-    ],
-    statusType: 'reportSubmitted' as keyof Installation,
-  }
-};
 
-type DashboardType = keyof typeof KANBAN_CONFIG;
+type DashboardType = 'installation' | 'project' | 'homologation' | 'report';
 
 export default function DashboardPage() {
   const params = useParams();
   const slug = (params.slug?.[0] || 'installation') as DashboardType;
-  const config = KANBAN_CONFIG[slug] || KANBAN_CONFIG.installation;
-
+  
   const [installations, setInstallations] = useState<Installation[]>([]);
+  const [statusConfig, setStatusConfig] = useState<StatusConfig>(defaultStatusConfig);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -97,9 +63,52 @@ export default function DashboardPage() {
         return { ...inst, reportSubmitted: !!report };
     });
     setInstallations(updatedInstallations);
+
+    // Load status config
+    const savedStatusConfigRaw = localStorage.getItem('statusConfig');
+    if (savedStatusConfigRaw) {
+      try {
+        const savedConfig = JSON.parse(savedStatusConfigRaw);
+        setStatusConfig(savedConfig);
+      } catch (e) {
+        console.error("Failed to parse status config", e);
+        localStorage.setItem('statusConfig', JSON.stringify(defaultStatusConfig));
+        setStatusConfig(defaultStatusConfig);
+      }
+    } else {
+        localStorage.setItem('statusConfig', JSON.stringify(defaultStatusConfig));
+        setStatusConfig(defaultStatusConfig);
+    }
+    
     setIsMounted(true);
 
   }, []);
+
+  const kanbanConfig = useMemo(() => {
+    return {
+      installation: {
+        columns: statusConfig.installation.map(s => ({ id: s, title: s })),
+        statusType: 'status' as keyof Installation,
+      },
+      project: {
+        columns: statusConfig.project.map(s => ({ id: s, title: s })),
+        statusType: 'projectStatus' as keyof Installation,
+      },
+      homologation: {
+        columns: statusConfig.homologation.map(s => ({ id: s, title: s })),
+        statusType: 'homologationStatus' as keyof Installation,
+      },
+      report: {
+        columns: [
+          { id: 'Enviado', title: 'Enviado' },
+          { id: 'Pendente', title: 'Pendente' },
+        ],
+        statusType: 'reportSubmitted' as keyof Installation,
+      }
+    };
+  }, [statusConfig]);
+  
+  const config = kanbanConfig[slug] || kanbanConfig.installation;
 
   const saveInstallations = (newInstallations: Installation[]) => {
     setInstallations(newInstallations);
@@ -128,7 +137,7 @@ export default function DashboardPage() {
         reportSubmitted: "Relatório Técnico"
     };
 
-    const statusLabel = statusLabels[statusType] || `Status de '${statusType}'`;
+    const statusLabel = statusLabels[statusType as keyof typeof statusLabels] || `Status de '${statusType}'`;
     eventDescription = `${statusLabel} alterado de "${oldStatus}" para "${newStatus}".`;
 
 
@@ -172,7 +181,7 @@ export default function DashboardPage() {
     <div className="h-[calc(100vh-4rem)] flex flex-col">
       <KanbanBoard 
         installations={activeInstallations} 
-        columns={config.columns}
+        columns={config.columns as KanbanColumnType[]}
         onItemMove={handleItemMove} 
         statusType={config.statusType}
       />

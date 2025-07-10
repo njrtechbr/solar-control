@@ -17,9 +17,10 @@ import {
 import Link from "next/link";
 
 import { 
-    type Installation, InstallationStatus, ProjectStatus, HomologationStatus, 
+    type Installation,
     type Inverter, type Panel, inverterSchema, panelSchema, initialInverters, initialPanels,
-    type Client, initialClients
+    type Client, initialClients,
+    type StatusConfig, defaultStatusConfig
 } from "@/app/admin/_lib/data";
 import { Button } from "@/components/ui/button";
 import {
@@ -224,6 +225,7 @@ export default function InstallationDetailPage() {
 
   const [installation, setInstallation] = useState<Installation | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
+  const [statusConfig, setStatusConfig] = useState<StatusConfig>(defaultStatusConfig);
   const [isEventDialogOpen, setEventDialogOpen] = useState(false);
   const [isScheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [isDocumentDialogOpen, setDocumentDialogOpen] = useState(false);
@@ -251,6 +253,15 @@ export default function InstallationDetailPage() {
     }
     const allClients: Client[] = JSON.parse(localStorage.getItem('clients') || '[]');
     setClients(allClients);
+
+    const savedStatusConfigRaw = localStorage.getItem('statusConfig');
+    if (savedStatusConfigRaw) {
+        try {
+            setStatusConfig(JSON.parse(savedStatusConfigRaw));
+        } catch (e) {
+            console.error("Failed to parse status config", e);
+        }
+    }
   }, [id]);
 
   const eventForm = useForm<EventValues>({
@@ -353,15 +364,23 @@ export default function InstallationDetailPage() {
     const updatedInstallation = {
       ...installation,
       scheduledDate: scheduledDate.toISOString(),
-      status: "Agendado" as Installation['status'],
-      events: [...(installation.events || []), newEvent].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+      status: "Agendado",
     };
+    
+    // Check if 'Agendado' exists in the config, if not, don't change the status
+    if (!statusConfig.installation.includes("Agendado")) {
+        toast({ title: "Aviso", description: "O status 'Agendado' não existe na configuração. O agendamento foi salvo mas o status não foi alterado.", variant: "default" });
+    } else {
+        updatedInstallation.status = "Agendado";
+    }
+
+    updatedInstallation.events = [...(installation.events || []), newEvent].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     updateInstallation(updatedInstallation, { title: "Instalação Agendada!", description: `Agendado para ${formattedDate}`});
     setScheduleDialogOpen(false);
   }
   
-  const handleStatusChange = (statusType: keyof Installation, newStatus: string) => {
+  const handleStatusChange = (statusType: 'status' | 'projectStatus' | 'homologationStatus', newStatus: string) => {
     if (!installation || isSubmitting) return;
 
     setIsSubmitting(true);
@@ -371,7 +390,7 @@ export default function InstallationDetailPage() {
         return;
     }
 
-    const updatedInstallation = { ...installation, [statusType]: newStatus as any };
+    const updatedInstallation = { ...installation, [statusType]: newStatus };
 
     // Create a new event for the change
     const statusLabels: { [key: string]: string } = {
@@ -628,34 +647,43 @@ export default function InstallationDetailPage() {
     },
   ];
 
-  const statusItems = [
+  const statusItems: {
+    label: string;
+    value: string;
+    options: readonly string[];
+    key: 'status' | 'projectStatus' | 'homologationStatus';
+    icon: React.ElementType;
+  }[] = [
     { 
       label: "Status da Instalação", 
       value: installation.status, 
-      options: InstallationStatus.options,
-      key: "status" as keyof Installation,
+      options: statusConfig.installation,
+      key: "status",
       icon: Bolt 
     },
     { 
       label: "Status do Projeto", 
       value: installation.projectStatus, 
-      options: ProjectStatus.options,
-      key: "projectStatus" as keyof Installation,
+      options: statusConfig.project,
+      key: "projectStatus",
       icon: FileCheck2 
     },
     { 
       label: "Status da Homologação", 
       value: installation.homologationStatus, 
-      options: HomologationStatus.options,
-      key: "homologationStatus" as keyof Installation,
+      options: statusConfig.homologation,
+      key: "homologationStatus",
       icon: CheckCircle 
     },
   ];
 
   const isOverdue = installation.status === "Agendado" && installation.scheduledDate && isPast(new Date(installation.scheduledDate));
   const overdueDays = installation.scheduledDate ? differenceInDays(new Date(), new Date(installation.scheduledDate)) : 0;
-  const canBeArchived = !installation.archived && (installation.status === 'Concluído' || installation.status === 'Cancelado');
+  const canBeArchived = !installation.archived && (statusConfig.installation.includes(installation.status) && (installation.status === 'Concluído' || installation.status === 'Cancelado'));
   const isArchivable = installation.archived || canBeArchived;
+  
+  const canSchedule = statusConfig.project.includes(installation.projectStatus) && installation.projectStatus === 'Aprovado';
+
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -1180,7 +1208,7 @@ export default function InstallationDetailPage() {
                 <CardFooter>
                     <Dialog open={isScheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
                         <DialogTrigger asChild>
-                            <Button variant="outline" className="w-full" disabled={installation.projectStatus !== 'Aprovado'}>
+                            <Button variant="outline" className="w-full" disabled={!canSchedule}>
                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                 {installation.scheduledDate ? "Reagendar" : "Agendar"}
                             </Button>

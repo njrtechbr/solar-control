@@ -18,9 +18,20 @@ export const clientSchema = z.object({
 });
 export type Client = z.infer<typeof clientSchema>;
 
-export const InstallationStatus = z.enum(["Pendente", "Agendado", "Em Andamento", "Concluído", "Cancelado"]);
-export const ProjectStatus = z.enum(["Não Enviado", "Enviado para Análise", "Aprovado", "Reprovado"]);
-export const HomologationStatus = z.enum(["Pendente", "Aprovado", "Reprovado"]);
+// Static Zod enums for default values. In the UI, we'll use dynamic values from localStorage.
+export const InstallationStatusEnum = z.enum(["Pendente", "Agendado", "Em Andamento", "Concluído", "Cancelado"]);
+export const ProjectStatusEnum = z.enum(["Não Enviado", "Enviado para Análise", "Aprovado", "Reprovado"]);
+export const HomologationStatusEnum = z.enum(["Pendente", "Aprovado", "Reprovado"]);
+
+// Default status values for initialization
+export const defaultStatusConfig = {
+  installation: InstallationStatusEnum.options,
+  project: ProjectStatusEnum.options,
+  homologation: HomologationStatusEnum.options
+};
+export type StatusConfig = typeof defaultStatusConfig;
+export type StatusCategory = keyof StatusConfig;
+
 
 export const inverterSchema = z.object({
   id: z.string().optional(),
@@ -60,9 +71,9 @@ export const installationSchema = z.object({
   inverters: z.array(inverterSchema).default([]),
   panels: z.array(panelSchema).default([]),
   
-  projectStatus: ProjectStatus.default("Não Enviado"),
-  homologationStatus: HomologationStatus.default("Pendente"),
-  status: InstallationStatus.default("Pendente"),
+  projectStatus: z.string().default(ProjectStatusEnum.options[0]),
+  homologationStatus: z.string().default(HomologationStatusEnum.options[0]),
+  status: z.string().default(InstallationStatusEnum.options[0]),
   reportSubmitted: z.boolean().default(false),
   scheduledDate: z.string().optional(),
   events: z.array(z.object({
@@ -326,5 +337,3 @@ export const createSampleReport = () => {
       installationVideoDataUrl: "",
   };
 };
-
-    
