@@ -99,12 +99,6 @@ const documentSchema = z.object({
 });
 type DocumentValues = z.infer<typeof documentSchema>;
 
-const equipmentSchema = z.discriminatedUnion("type", [
-  inverterSchema.extend({ type: z.literal("inverter") }),
-  panelSchema.extend({ type: z.literal("panel") }),
-]);
-type EquipmentValues = z.infer<typeof equipmentSchema>;
-
 
 const EVENT_TYPES = [
   { value: "Agendamento", label: "Agendamento", icon: CalendarIcon },
@@ -126,8 +120,6 @@ export default function InstallationDetailPage() {
   const [isEventDialogOpen, setEventDialogOpen] = useState(false);
   const [isScheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [isDocumentDialogOpen, setDocumentDialogOpen] = useState(false);
-  const [isEquipmentDialogOpen, setEquipmentDialogOpen] = useState(false);
-  const [editingEquipment, setEditingEquipment] = useState<{type: 'inverter' | 'panel', data: Inverter | Panel} | null>(null);
 
   const [installerReport, setInstallerReport] = useState<any | null>(null);
   const [generatedFinalReport, setGeneratedFinalReport] = useState<string | null>(null);
@@ -175,10 +167,6 @@ export default function InstallationDetailPage() {
     resolver: zodResolver(finalReportSchema),
   });
 
-  const equipmentForm = useForm<EquipmentValues>({
-    resolver: zodResolver(equipmentSchema),
-  });
-
   useEffect(() => {
     if (installation) {
         scheduleForm.reset({
@@ -189,20 +177,6 @@ export default function InstallationDetailPage() {
     }
   }, [installation, scheduleForm]);
 
-  useEffect(() => {
-    if (editingEquipment) {
-        equipmentForm.reset({ ...editingEquipment.data, type: editingEquipment.type });
-    } else {
-        equipmentForm.reset({ 
-            type: 'inverter',
-            brand: '',
-            model: '',
-            serialNumber: '',
-            warranty: '',
-            dataloggerId: ''
-        });
-    }
-  }, [editingEquipment, equipmentForm]);
 
   function updateInstallation(updatedInstallation: Installation, toastMessage?: {title: string, description: string}) {
       const allInstallations: Installation[] = JSON.parse(localStorage.getItem('installations') || '[]');
@@ -388,52 +362,6 @@ export default function InstallationDetailPage() {
     copyToClipboard(link, "Link do formulário do instalador copiado!");
   }
 
-  const handleSaveEquipment = (values: EquipmentValues) => {
-    if (!installation) return;
-
-    if (values.type === 'inverter') {
-        const inverters = [...(installation.inverters || [])];
-        const { type, ...inverterData } = values;
-        if (editingEquipment) {
-            const index = inverters.findIndex(inv => inv.id === editingEquipment.data.id);
-            if (index > -1) inverters[index] = inverterData;
-        } else {
-            inverters.push({ ...inverterData, id: new Date().toISOString() });
-        }
-        updateInstallation({ ...installation, inverters }, { title: "Inversor Salvo!", description: "Os dados do inversor foram atualizados." });
-    }
-
-    if (values.type === 'panel') {
-        const panels = [...(installation.panels || [])];
-        const { type, ...panelData } = values;
-        if (editingEquipment) {
-            const index = panels.findIndex(p => p.id === editingEquipment.data.id);
-            if (index > -1) panels[index] = panelData;
-        } else {
-            panels.push({ ...panelData, id: new Date().toISOString() });
-        }
-        updateInstallation({ ...installation, panels }, { title: "Painel Salvo!", description: "Os dados dos painéis foram atualizados." });
-    }
-
-    setEquipmentDialogOpen(false);
-    setEditingEquipment(null);
-    equipmentForm.reset();
-  };
-
-  const handleDeleteEquipment = (type: 'inverter' | 'panel', id: string) => {
-    if (!installation) return;
-
-    if (type === 'inverter') {
-        const inverters = (installation.inverters || []).filter(inv => inv.id !== id);
-        updateInstallation({ ...installation, inverters }, { title: "Inversor Removido!", variant: "destructive" });
-    }
-
-    if (type === 'panel') {
-        const panels = (installation.panels || []).filter(p => p.id !== id);
-        updateInstallation({ ...installation, panels }, { title: "Painel Removido!", variant: "destructive" });
-    }
-  }
-
   if (!installation) {
     return (
         <div className="flex h-screen items-center justify-center">
@@ -551,8 +479,6 @@ export default function InstallationDetailPage() {
   const overdueDays = installation.scheduledDate ? differenceInDays(new Date(), new Date(installation.scheduledDate)) : 0;
   const canBeArchived = !installation.archived && (installation.status === 'Concluído' || installation.status === 'Cancelado');
   const isArchivable = installation.archived || canBeArchived;
-
-  const equipmentType = equipmentForm.watch("type");
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -950,53 +876,11 @@ export default function InstallationDetailPage() {
                 <CardTitle className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <CircuitBoard className="h-5 w-5 text-primary" />
-                    Equipamentos
+                    Equipamentos Alocados
                   </div>
-                  <Dialog open={isEquipmentDialogOpen} onOpenChange={(isOpen) => { setEquipmentDialogOpen(isOpen); if(!isOpen) setEditingEquipment(null); }}>
-                    <DialogTrigger asChild>
-                        <Button size="sm" variant="outline"><Plus className="h-4 w-4 mr-2" /> Adicionar</Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>{editingEquipment ? "Editar" : "Adicionar"} Equipamento</DialogTitle>
-                            <DialogDescription>Preencha os detalhes do equipamento abaixo.</DialogDescription>
-                        </DialogHeader>
-                        <Form {...equipmentForm}>
-                            <form id="equipment-form" onSubmit={equipmentForm.handleSubmit(handleSaveEquipment)} className="space-y-4">
-                                <FormField control={equipmentForm.control} name="type" render={({ field }) => (
-                                    <FormItem><FormLabel>Tipo de Equipamento</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!editingEquipment}>
-                                        <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
-                                        <SelectContent><SelectItem value="inverter">Inversor</SelectItem><SelectItem value="panel">Painel Solar</SelectItem></SelectContent>
-                                    </Select>
-                                    </FormItem>
-                                )}/>
-
-                                {equipmentType === 'inverter' && (<>
-                                    <FormField control={equipmentForm.control} name="brand" render={({ field }) => (<FormItem><FormLabel>Marca</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl></FormItem>)} />
-                                    <FormField control={equipmentForm.control} name="model" render={({ field }) => (<FormItem><FormLabel>Modelo</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl></FormItem>)} />
-                                    <FormField control={equipmentForm.control} name="serialNumber" render={({ field }) => (<FormItem><FormLabel>Nº de Série</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl></FormItem>)} />
-                                    <FormField control={equipmentForm.control} name="warranty" render={({ field }) => (<FormItem><FormLabel>Garantia</FormLabel><FormControl><Input placeholder="Ex: 5 anos" {...field} value={field.value ?? ''} /></FormControl></FormItem>)} />
-                                    <FormField control={equipmentForm.control} name="dataloggerId" render={({ field }) => (<FormItem><FormLabel>ID Datalogger</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl></FormItem>)} />
-                                </>)}
-                                
-                                {equipmentType === 'panel' && (<>
-                                    <FormField control={equipmentForm.control} name="brand" render={({ field }) => (<FormItem><FormLabel>Marca</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl></FormItem>)} />
-                                    <FormField control={equipmentForm.control} name="model" render={({ field }) => (<FormItem><FormLabel>Modelo</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl></FormItem>)} />
-                                    <FormField control={equipmentForm.control} name="power" render={({ field }) => (<FormItem><FormLabel>Potência (Wp)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl></FormItem>)} />
-                                    <FormField control={equipmentForm.control} name="quantity" render={({ field }) => (<FormItem><FormLabel>Quantidade</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl></FormItem>)} />
-                                </>)}
-
-                            </form>
-                        </Form>
-                         <DialogFooter>
-                            <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-                            <Button type="submit" form="equipment-form">Salvar</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
+                   <Button size="sm" variant="outline"><Plus className="h-4 w-4 mr-2" /> Alocar</Button>
                 </CardTitle>
-                <CardDescription>Detalhes dos componentes da instalação.</CardDescription>
+                <CardDescription>Equipamentos do inventário alocados nesta instalação.</CardDescription>
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-48">
@@ -1005,32 +889,21 @@ export default function InstallationDetailPage() {
                         {(installation.inverters || []).length > 0 ? (
                             (installation.inverters || []).map(inverter => (
                                 <div key={inverter.id} className="text-xs p-2 border rounded-md relative group">
-                                    <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingEquipment({type: 'inverter', data: inverter}); setEquipmentDialogOpen(true); }}><Edit className="h-3 w-3"/></Button>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-destructive/10" onClick={() => handleDeleteEquipment('inverter', inverter.id!)}><Trash2 className="h-3 w-3 text-destructive"/></Button>
-                                    </div>
                                     <p className="font-bold">{inverter.brand} {inverter.model}</p>
                                     <p>S/N: {inverter.serialNumber || 'N/A'}</p>
-                                    <p>Garantia: {inverter.warranty || 'N/A'}</p>
-                                    <p>Datalogger: {inverter.dataloggerId || 'N/A'}</p>
                                 </div>
                             ))
-                        ) : (<p className="text-xs text-muted-foreground">Nenhum inversor adicionado.</p>)}
+                        ) : (<p className="text-xs text-muted-foreground">Nenhum inversor alocado.</p>)}
 
                         <h4 className="font-semibold text-sm pt-2">Painéis Solares</h4>
                          {(installation.panels || []).length > 0 ? (
                             (installation.panels || []).map(panel => (
                                 <div key={panel.id} className="text-xs p-2 border rounded-md relative group">
-                                     <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingEquipment({type: 'panel', data: panel}); setEquipmentDialogOpen(true); }}><Edit className="h-3 w-3"/></Button>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-destructive/10" onClick={() => handleDeleteEquipment('panel', panel.id!)}><Trash2 className="h-3 w-3 text-destructive"/></Button>
-                                    </div>
                                     <p className="font-bold">{panel.brand} {panel.model}</p>
-                                    <p>Potência: {panel.power || 'N/A'} Wp</p>
-                                    <p>Quantidade: {panel.quantity || 'N/A'}</p>
+                                    <p>Potência: {panel.power || 'N/A'} Wp | Qtd: {panel.quantity || 'N/A'}</p>
                                 </div>
                             ))
-                        ) : (<p className="text-xs text-muted-foreground">Nenhum painel adicionado.</p>)}
+                        ) : (<p className="text-xs text-muted-foreground">Nenhum painel alocado.</p>)}
                     </div>
                 </ScrollArea>
               </CardContent>
@@ -1216,3 +1089,5 @@ export default function InstallationDetailPage() {
     </div>
   );
 }
+
+    
