@@ -8,14 +8,13 @@ import { ptBR } from 'date-fns/locale';
 
 import {
   type Installation,
-  InstallationStatus,
-  ProjectStatus,
-  HomologationStatus,
   initialInstallations,
   createSampleReport,
+  type Client,
+  initialClients
 } from '@/app/admin/_lib/data';
 
-import { KanbanBoard, type KanbanColumnType } from '@/app/admin/_components/kanban-board';
+import { KanbanBoard } from '@/app/admin/_components/kanban-board';
 import { toast } from '@/hooks/use-toast';
 
 const KANBAN_CONFIG = {
@@ -66,6 +65,12 @@ export default function DashboardPage() {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    // Load clients and installations from localStorage, or initialize with sample data
+    let savedClients = localStorage.getItem('clients');
+    if (!savedClients || JSON.parse(savedClients).length === 0) {
+      localStorage.setItem('clients', JSON.stringify(initialClients));
+    }
+
     let savedInstallations = localStorage.getItem('installations');
     if (!savedInstallations || JSON.parse(savedInstallations).length === 0) {
       localStorage.setItem('installations', JSON.stringify(initialInstallations));
@@ -100,11 +105,22 @@ export default function DashboardPage() {
     
     let eventDescription = '';
     
-    if (installation[statusType] === newStatus) return;
+    if (String(installation[statusType]) === newStatus) return;
+
 
     const valueToSet: string | boolean = statusType === 'reportSubmitted' ? (newStatus === 'Enviado') : newStatus;
     (installation as any)[statusType] = valueToSet;
-    eventDescription = `Status de '${statusType}' alterado de "${oldStatus}" para "${newStatus}".`;
+    
+    const statusLabels = {
+        status: "Status da Instalação",
+        projectStatus: "Status do Projeto",
+        homologationStatus: "Status da Homologação",
+        reportSubmitted: "Relatório Técnico"
+    };
+
+    const statusLabel = statusLabels[statusType] || `Status de '${statusType}'`;
+    eventDescription = `${statusLabel} alterado de "${oldStatus}" para "${newStatus}".`;
+
 
     if (statusType === "status" && newStatus === "Agendado" && !installation.scheduledDate) {
         const scheduledDate = new Date(Date.now() + 86400000 * 7);

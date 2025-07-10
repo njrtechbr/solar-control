@@ -7,6 +7,8 @@ import {
   type Installation,
   initialInstallations,
   createSampleReport,
+  type Client,
+  initialClients
 } from '@/app/admin/_lib/data';
 import { InstallationTable, getColumns } from "@/app/admin/_components/installation-table";
 import { toast } from "@/hooks/use-toast";
@@ -14,20 +16,32 @@ import { toast } from "@/hooks/use-toast";
 
 export default function InstallationListPage() {
   const [installations, setInstallations] = useState<Installation[]>([]);
-  const [filters, setFilters] = useState<{ [key: string]: string }>({});
+  const [clients, setClients] = useState<Client[]>([]);
 
   useEffect(() => {
+    // Load installations
     let savedInstallations = localStorage.getItem('installations');
     if (!savedInstallations || JSON.parse(savedInstallations).length === 0) {
         localStorage.setItem('installations', JSON.stringify(initialInstallations));
         savedInstallations = JSON.stringify(initialInstallations);
     }
-    
     const loadedInstallations = JSON.parse(savedInstallations) as Installation[];
+    
+    // Load clients
+    let savedClients = localStorage.getItem('clients');
+    if (!savedClients || JSON.parse(savedClients).length === 0) {
+        localStorage.setItem('clients', JSON.stringify(initialClients));
+        savedClients = JSON.stringify(initialClients);
+    }
+    setClients(JSON.parse(savedClients));
+
+    // Handle sample report
     const sampleReportKey = 'report_Maria Silva';
     if (!localStorage.getItem(sampleReportKey)) {
         localStorage.setItem(sampleReportKey, JSON.stringify(createSampleReport()));
     }
+
+    // Update installations with report status
     const updatedInstallations = loadedInstallations.map((inst: Installation) => {
         const report = localStorage.getItem(`report_${inst.clientName}`);
         return { ...inst, reportSubmitted: !!report };
@@ -54,11 +68,14 @@ export default function InstallationListPage() {
     saveInstallations(allInstallations);
     toast({
       title: `Instalação ${isArchiving ? 'Arquivada' : 'Desarquivada'}!`,
-      description: `O cliente ${installation.clientName} foi ${isArchiving ? 'arquivado' : 'restaurado'}.`
+      description: `A instalação de ${installation.clientName} foi ${isArchiving ? 'arquivada' : 'restaurada'}.`
     });
   };
 
   const tableColumns = useMemo(() => getColumns(handleArchiveToggle), []);
+  
+  const [filters, setFilters] = useState<{ [key: string]: string }>({});
+
 
   const handleSearch = (value: string) => {
     setFilters(prev => ({ ...prev, global: value }));

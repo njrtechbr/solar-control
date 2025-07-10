@@ -4,11 +4,13 @@
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { PlusCircle, User, Home, Building, Bolt } from "lucide-react";
+import { PlusCircle, User, Home, Building, Bolt, ChevronDown } from "lucide-react";
 
 import {
   type Installation,
-  installationSchema
+  installationSchema,
+  type Client,
+  initialClients,
 } from '@/app/admin/_lib/data';
 
 import { Button } from "@/components/ui/button";
@@ -30,19 +32,44 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
+// We need a slightly different schema for the form, as we only need the clientId
+const formSchema = installationSchema.omit({ 
+    clientName: true,
+    address: true,
+    city: true,
+    state: true,
+    zipCode: true
+});
+
 export function CreateInstallationDialog() {
   const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
   const [installations, setInstallations] = useState<Installation[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
 
   useEffect(() => {
     const savedInstallations = localStorage.getItem('installations');
     if (savedInstallations) {
       setInstallations(JSON.parse(savedInstallations));
     }
+    
+    let savedClients = localStorage.getItem('clients');
+    if (!savedClients || JSON.parse(savedClients).length === 0) {
+        localStorage.setItem('clients', JSON.stringify(initialClients));
+        savedClients = JSON.stringify(initialClients);
+    }
+    setClients(JSON.parse(savedClients));
+
   }, []);
 
   const saveInstallations = (newInstallations: Installation[]) => {
@@ -50,16 +77,9 @@ export function CreateInstallationDialog() {
     localStorage.setItem('installations', JSON.stringify(newInstallations));
   };
 
-  const form = useForm<Installation>({
-    resolver: zodResolver(installationSchema),
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
-      clientName: "",
-      address: "",
-      city: "",
-      state: "",
-      zipCode: "",
-      utilityCompany: "",
-      protocolNumber: "",
       inverters: [],
       panels: [],
       installationType: "residencial",
@@ -73,12 +93,24 @@ export function CreateInstallationDialog() {
     },
   });
 
-  function handleCreate(values: Installation) {
+  function handleCreate(values: z.infer<typeof formSchema>) {
+    const selectedClient = clients.find(c => c.id === values.clientId);
+    if (!selectedClient) {
+        toast({ title: "Erro", description: "Cliente selecionado não encontrado.", variant: "destructive" });
+        return;
+    }
+
     const nextId = installations.length > 0 ? Math.max(...installations.map(i => i.id!)) + 1 : 1;
+    
     const newInstallation: Installation = {
       ...values,
       id: nextId,
       installationId: `INST-${String(nextId).padStart(3, '0')}`,
+      clientName: selectedClient.name, // Denormalize name for easy access
+      address: selectedClient.address,
+      city: selectedClient.city,
+      state: selectedClient.state,
+      zipCode: selectedClient.zipCode,
       reportSubmitted: false,
       events: [],
       documents: [],
@@ -103,7 +135,7 @@ export function CreateInstallationDialog() {
     saveInstallations([...installations, newInstallation]);
     toast({
       title: "Instalação Cadastrada!",
-      description: `Cliente ${values.clientName} adicionado.`,
+      description: `Instalação para ${selectedClient.name} adicionada.`,
     });
     form.reset();
     setCreateDialogOpen(false);
@@ -120,11 +152,11 @@ export function CreateInstallationDialog() {
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
+            <PlusCircle className="h-5 w-5" />
             Cadastrar Nova Instalação
           </DialogTitle>
           <DialogDescription>
-            Insira os dados para criar um novo registro de instalação. Equipamentos são adicionados depois.
+            Selecione o cliente e insira os dados iniciais da instalação.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -133,25 +165,37 @@ export function CreateInstallationDialog() {
             onSubmit={form.handleSubmit(handleCreate)}
             className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-4"
           >
-            <FormField
+             <FormField
               control={form.control}
-              name="clientName"
+              name="clientId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nome do Cliente</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ex: Condomínio Sol Nascente" {...field} />
-                  </FormControl>
+                  <FormLabel>Cliente</FormLabel>
+                   <Select onValueChange={(value) => field.onChange(Number(value))} defaultValue={String(field.value)}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um cliente..." />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {clients.map(client => (
+                        <SelectItem key={client.id} value={String(client.id!)}>
+                          {client.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            
             <FormField
               control={form.control}
               name="installationType"
               render={({ field }) => (
                 <FormItem className="space-y-2">
-                  <FormLabel>Tipo de Instalação</FormLabel>
+                  <FormLabel>Tipo de Instalação no Local</FormLabel>
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
@@ -180,60 +224,7 @@ export function CreateInstallationDialog() {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Endereço</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Rua, Número, Bairro" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="city"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cidade</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="state"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Estado</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <FormField
-              control={form.control}
-              name="zipCode"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>CEP</FormLabel>
-                  <FormControl>
-                    <Input placeholder="00000-000" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          
             <FormField
               control={form.control}
               name="utilityCompany"
@@ -249,6 +240,7 @@ export function CreateInstallationDialog() {
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="protocolNumber"

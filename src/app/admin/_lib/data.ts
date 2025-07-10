@@ -1,6 +1,23 @@
 
 import { z } from 'zod';
 
+// Client Schemas
+export const clientSchema = z.object({
+  id: z.number().optional(),
+  name: z.string().min(2, "O nome do cliente é obrigatório."),
+  clientType: z.enum(["pessoa_fisica", "pessoa_juridica"], {
+    required_error: "Selecione o tipo de cliente.",
+  }),
+  document: z.string().min(11, "CPF/CNPJ é obrigatório."),
+  email: z.string().email("E-mail inválido.").optional().or(z.literal('')),
+  phone: z.string().optional(),
+  address: z.string().min(5, "O endereço é obrigatório."),
+  city: z.string().min(2, "A cidade é obrigatória."),
+  state: z.string().min(2, "O estado é obrigatório."),
+  zipCode: z.string().min(8, "O CEP é obrigatório."),
+});
+export type Client = z.infer<typeof clientSchema>;
+
 export const InstallationStatus = z.enum(["Pendente", "Agendado", "Em Andamento", "Concluído", "Cancelado"]);
 export const ProjectStatus = z.enum(["Não Enviado", "Enviado para Análise", "Aprovado", "Reprovado"]);
 export const HomologationStatus = z.enum(["Pendente", "Aprovado", "Reprovado"]);
@@ -27,7 +44,8 @@ export type Panel = z.infer<typeof panelSchema>;
 export const installationSchema = z.object({
   id: z.number().optional(),
   installationId: z.string().optional(),
-  clientName: z.string().min(2, "O nome do cliente é obrigatório."),
+  clientId: z.number({ required_error: "Selecione um cliente." }),
+  clientName: z.string(), // Denormalized for easy display
   address: z.string().min(5, "O endereço é obrigatório."),
   city: z.string().min(2, "A cidade é obrigatória."),
   state: z.string().min(2, "O estado é obrigatório."),
@@ -65,10 +83,75 @@ export const installationSchema = z.object({
 
 export type Installation = z.infer<typeof installationSchema>;
 
+export const initialClients: Client[] = [
+    {
+      id: 1,
+      name: "Condomínio Sol Nascente",
+      clientType: "pessoa_juridica",
+      document: "12.345.678/0001-99",
+      email: "sindico@solnascente.com",
+      phone: "19987654321",
+      address: "Rua A, 123",
+      city: "Campinas",
+      state: "SP",
+      zipCode: "13000-001"
+    },
+    {
+      id: 2,
+      name: "Maria Silva",
+      clientType: "pessoa_fisica",
+      document: "123.456.789-00",
+      email: "maria.silva@email.com",
+      phone: "11912345678",
+      address: "Rua B, 456",
+      city: "São Paulo",
+      state: "SP",
+      zipCode: "01000-002"
+    },
+    {
+      id: 3,
+      name: "Supermercado Economia",
+      clientType: "pessoa_juridica",
+      document: "98.765.432/0001-11",
+      email: "contato@supereconomia.com",
+      phone: "1933334444",
+      address: "Av. C, 789",
+      city: "Valinhos",
+      state: "SP",
+      zipCode: "13270-003"
+    },
+    {
+      id: 4,
+      name: "João Pereira",
+      clientType: "pessoa_fisica",
+      document: "987.654.321-99",
+      email: "joao.pereira@email.com",
+      phone: "11988887777",
+      address: "Rua D, 101",
+      city: "Jundiaí",
+      state: "SP",
+      zipCode: "13201-004"
+    },
+    {
+      id: 5,
+      name: "Oficina Mecânica Veloz",
+      clientType: "pessoa_juridica",
+      document: "11.222.333/0001-44",
+      email: "veloz@oficina.com",
+      phone: "19977776666",
+      address: "Rua E, 202",
+      city: "Indaiatuba",
+      state: "SP",
+      zipCode: "13330-005"
+    }
+];
+
+
 export const initialInstallations: Installation[] = [
     { 
       id: 1, 
       installationId: "INST-001",
+      clientId: 1,
       clientName: "Condomínio Sol Nascente", 
       address: "Rua A, 123", 
       city: "Campinas", 
@@ -99,6 +182,7 @@ export const initialInstallations: Installation[] = [
     { 
       id: 2, 
       installationId: "INST-002",
+      clientId: 2,
       clientName: "Maria Silva", 
       address: "Rua B, 456", 
       city: "São Paulo", 
@@ -132,6 +216,7 @@ export const initialInstallations: Installation[] = [
     { 
       id: 3, 
       installationId: "INST-003",
+      clientId: 3,
       clientName: "Supermercado Economia", 
       address: "Av. C, 789", 
       city: "Valinhos", 
@@ -156,6 +241,7 @@ export const initialInstallations: Installation[] = [
     { 
       id: 4, 
       installationId: "INST-004",
+      clientId: 4,
       clientName: "João Pereira", 
       address: "Rua D, 101", 
       city: "Jundiaí", 
@@ -178,6 +264,7 @@ export const initialInstallations: Installation[] = [
     { 
       id: 5, 
       installationId: "INST-005",
+      clientId: 5,
       clientName: "Oficina Mecânica Veloz", 
       address: "Rua E, 202", 
       city: "Indaiatuba", 
