@@ -17,6 +17,7 @@ import {
   Trash2,
   Building,
   User,
+  List,
 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -60,10 +61,13 @@ import {
   RadioGroupItem,
 } from "@/components/ui/radio-group";
 
-import { Client, clientSchema } from "../_lib/data";
+import { Client, clientSchema, type Installation } from "../_lib/data";
+import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 
 interface ClientManagementProps {
   clients: Client[];
+  installations: Installation[];
   onSave: (clientData: Client) => void;
   onDelete: (clientId: number) => void;
 }
@@ -207,10 +211,12 @@ const ClientDialog: React.FC<{
   );
 };
 
-export function ClientManagement({ clients, onSave, onDelete }: ClientManagementProps) {
+export function ClientManagement({ clients, installations, onSave, onDelete }: ClientManagementProps) {
     const [searchQuery, setSearchQuery] = React.useState("");
 
-    const columns: ColumnDef<Client>[] = [
+    const getColumns = (
+        installations: Installation[]
+    ): ColumnDef<Client>[] => [
         {
           accessorKey: "name",
           header: "Nome / Razão Social",
@@ -225,8 +231,16 @@ export function ClientManagement({ clients, onSave, onDelete }: ClientManagement
           cell: ({ row }) => `${row.original.city} - ${row.original.state}`
         },
         {
-          accessorKey: "email",
-          header: "E-mail",
+          id: 'installations',
+          header: "Instalações Vinculadas",
+          cell: ({ row }) => {
+            const client = row.original;
+            const count = installations.filter(inst => inst.clientId === client.id).length;
+            if (count === 0) {
+              return <Badge variant="outline">Nenhuma</Badge>;
+            }
+            return <Link href={`/admin/installations?clientId=${client.id}`}><Badge variant="secondary" className="hover:bg-primary/10">{count} {count > 1 ? 'instalações' : 'instalação'}</Badge></Link>
+          }
         },
         {
           accessorKey: "phone",
@@ -250,6 +264,11 @@ export function ClientManagement({ clients, onSave, onDelete }: ClientManagement
                             <Edit className="mr-2 h-4 w-4" /> Editar
                         </button>
                     </ClientDialog>
+                    <Link href={`/admin/installations?clientId=${client.id}`}>
+                        <DropdownMenuItem>
+                            <List className="mr-2 h-4 w-4" /> Ver Instalações
+                        </DropdownMenuItem>
+                    </Link>
                   <DropdownMenuItem onClick={() => onDelete(client.id!)} className="text-destructive focus:text-destructive">
                     <Trash2 className="mr-2 h-4 w-4" /> Excluir
                   </DropdownMenuItem>
@@ -259,6 +278,8 @@ export function ClientManagement({ clients, onSave, onDelete }: ClientManagement
           },
         },
     ];
+
+  const columns = React.useMemo(() => getColumns(installations), [installations]);
 
   const filteredClients = React.useMemo(() => {
     return clients.filter(client =>

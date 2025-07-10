@@ -2,31 +2,47 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { initialClients, type Client } from "@/app/admin/_lib/data";
+import { initialClients, type Client, type Installation, initialInstallations } from "@/app/admin/_lib/data";
 import { ClientManagement } from "@/app/admin/_components/client-management";
 import { toast } from "@/hooks/use-toast";
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
+  const [installations, setInstallations] = useState<Installation[]>([]);
 
   useEffect(() => {
+    // Correctly load or initialize clients
     const savedClientsRaw = localStorage.getItem('clients');
-    let savedClients: Client[] = [];
-    
+    let loadedClients: Client[] = [];
     if (savedClientsRaw) {
-      try {
-        savedClients = JSON.parse(savedClientsRaw);
-      } catch (e) {
-        console.error("Failed to parse clients from localStorage", e);
-        savedClients = [];
-      }
+        try {
+            loadedClients = JSON.parse(savedClientsRaw);
+        } catch (e) {
+            console.error("Failed to parse clients from localStorage", e);
+        }
     }
-
-    if (savedClients.length === 0) {
+    if (loadedClients.length === 0) {
         localStorage.setItem('clients', JSON.stringify(initialClients));
-        savedClients = initialClients;
+        loadedClients = initialClients;
     }
-    setClients(savedClients);
+    setClients(loadedClients);
+    
+    // Load installations to find links
+    const savedInstallationsRaw = localStorage.getItem('installations');
+    let loadedInstallations: Installation[] = [];
+    if(savedInstallationsRaw) {
+        try {
+            loadedInstallations = JSON.parse(savedInstallationsRaw);
+        } catch (e) {
+            console.error("Failed to parse installations from localStorage", e);
+        }
+    }
+    if (loadedInstallations.length === 0) {
+        localStorage.setItem('installations', JSON.stringify(initialInstallations));
+        loadedInstallations = initialInstallations;
+    }
+    setInstallations(loadedInstallations);
+
   }, []);
 
   const saveClients = (updatedClients: Client[]) => {
@@ -63,6 +79,7 @@ export default function ClientsPage() {
 
   return <ClientManagement 
             clients={clients} 
+            installations={installations}
             onSave={handleSaveClient} 
             onDelete={handleDeleteClient}
          />;

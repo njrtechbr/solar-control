@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import Link from 'next/link';
 import {
   ColumnDef,
   flexRender,
@@ -20,9 +21,12 @@ import {
   PanelTop,
   Edit,
   Trash2,
+  CheckCircle,
+  Warehouse,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -63,7 +67,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 
-import { Inverter, Panel, inverterSchema, panelSchema } from "../_lib/data";
+import { Inverter, Panel, inverterSchema, panelSchema, type Installation } from "../_lib/data";
 
 
 const EquipmentDialog: React.FC<{
@@ -142,6 +146,7 @@ const EquipmentDialog: React.FC<{
 interface EquipmentManagementProps {
   inverters: Inverter[];
   panels: Panel[];
+  installations: Installation[];
   onSaveInverter: (data: Inverter) => void;
   onSavePanel: (data: Panel) => void;
   onDeleteInverter: (id: string) => void;
@@ -149,15 +154,45 @@ interface EquipmentManagementProps {
 }
 
 export function EquipmentManagement({ 
-    inverters, panels, onSaveInverter, onSavePanel, onDeleteInverter, onDeletePanel 
+    inverters, panels, installations, onSaveInverter, onSavePanel, onDeleteInverter, onDeletePanel 
 }: EquipmentManagementProps) {
   const [searchQuery, setSearchQuery] = React.useState("");
+  
+  const inverterInstallationMap = React.useMemo(() => {
+    const map = new Map<string, Installation>();
+    installations.forEach(inst => {
+      inst.inverters?.forEach(inv => {
+        map.set(inv.id!, inst);
+      });
+    });
+    return map;
+  }, [installations]);
+
+  const panelInstallationMap = React.useMemo(() => {
+    const map = new Map<string, Installation>();
+    installations.forEach(inst => {
+      inst.panels?.forEach(panel => {
+        map.set(panel.id!, inst);
+      });
+    });
+    return map;
+  }, [installations]);
 
   const getInverterColumns = (onSave: (data: Inverter) => void, onDelete: (id: string) => void): ColumnDef<Inverter>[] => [
     { accessorKey: "brand", header: "Marca" },
     { accessorKey: "model", header: "Modelo" },
     { accessorKey: "serialNumber", header: "Nº de Série" },
-    { accessorKey: "dataloggerId", header: "ID Datalogger" },
+    { id: "allocation", header: "Alocado Em", cell: ({ row }) => {
+        const installation = inverterInstallationMap.get(row.original.id!);
+        if (!installation) {
+            return <Badge variant="secondary" className="flex items-center gap-1.5"><Warehouse size={14}/>Disponível em estoque</Badge>;
+        }
+        return (
+            <Link href={`/admin/installation/${installation.id}`}>
+                <Badge variant="outline" className="hover:bg-primary/10">{installation.clientName} ({installation.city})</Badge>
+            </Link>
+        );
+    }},
     { accessorKey: "warranty", header: "Garantia" },
     {
       id: "actions",
@@ -184,6 +219,17 @@ export function EquipmentManagement({
     { accessorKey: "brand", header: "Marca" },
     { accessorKey: "model", header: "Modelo" },
     { accessorKey: "power", header: "Potência (Wp)" },
+    { id: "allocation", header: "Alocado Em", cell: ({ row }) => {
+        const installation = panelInstallationMap.get(row.original.id!);
+         if (!installation) {
+            return <Badge variant="secondary" className="flex items-center gap-1.5"><Warehouse size={14}/>Disponível em estoque</Badge>;
+        }
+        return (
+            <Link href={`/admin/installation/${installation.id}`}>
+                <Badge variant="outline" className="hover:bg-primary/10">{installation.clientName} ({installation.city})</Badge>
+            </Link>
+        );
+    }},
     { accessorKey: "quantity", header: "Quantidade" },
     {
       id: "actions",
@@ -206,6 +252,8 @@ export function EquipmentManagement({
     },
   ];
   
+  const inverterColumns = React.useMemo(() => getInverterColumns(onSaveInverter, onDeleteInverter), [inverterInstallationMap]);
+  const panelColumns = React.useMemo(() => getPanelColumns(onSavePanel, onDeletePanel), [panelInstallationMap]);
 
   const filteredInverters = React.useMemo(() => 
     inverters.filter(inv => 
@@ -222,14 +270,14 @@ export function EquipmentManagement({
 
   const inverterTable = useReactTable({
     data: filteredInverters,
-    columns: getInverterColumns(onSaveInverter, onDeleteInverter),
+    columns: inverterColumns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   });
   
   const panelTable = useReactTable({
     data: filteredPanels,
-    columns: getPanelColumns(onSavePanel, onDeletePanel),
+    columns: panelColumns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   });
@@ -277,7 +325,7 @@ export function EquipmentManagement({
                   </TableRow>
                 ))
               ) : (
-                <TableRow><TableCell colSpan={getInverterColumns(onSaveInverter, onDeleteInverter).length} className="h-24 text-center">Nenhum inversor encontrado.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={inverterColumns.length} className="h-24 text-center">Nenhum inversor encontrado.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -314,7 +362,7 @@ export function EquipmentManagement({
                   </TableRow>
                 ))
               ) : (
-                <TableRow><TableCell colSpan={getPanelColumns(onSavePanel, onDeletePanel).length} className="h-24 text-center">Nenhum painel encontrado.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={panelColumns.length} className="h-24 text-center">Nenhum painel encontrado.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -327,5 +375,3 @@ export function EquipmentManagement({
     </Tabs>
   );
 }
-
-    

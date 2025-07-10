@@ -2,15 +2,32 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { type Inverter, type Panel, initialInverters, initialPanels } from "@/app/admin/_lib/data";
+import { type Inverter, type Panel, initialInverters, initialPanels, type Installation, initialInstallations } from "@/app/admin/_lib/data";
 import { EquipmentManagement } from "@/app/admin/_components/equipment-management";
 import { toast } from "@/hooks/use-toast";
 
 export default function EquipmentPage() {
   const [inverters, setInverters] = useState<Inverter[]>([]);
   const [panels, setPanels] = useState<Panel[]>([]);
+  const [installations, setInstallations] = useState<Installation[]>([]);
 
   useEffect(() => {
+    // Load installations to find links
+    const savedInstallationsRaw = localStorage.getItem('installations');
+    let loadedInstallations: Installation[] = [];
+    if(savedInstallationsRaw) {
+        try {
+            loadedInstallations = JSON.parse(savedInstallationsRaw);
+        } catch (e) {
+            console.error("Failed to parse installations from localStorage", e);
+        }
+    }
+    if (loadedInstallations.length === 0) {
+        localStorage.setItem('installations', JSON.stringify(initialInstallations));
+        loadedInstallations = initialInstallations;
+    }
+    setInstallations(loadedInstallations);
+
     // Load inverters from central inventory
     const savedInvertersRaw = localStorage.getItem('inverters');
     let loadedInverters: Inverter[] = [];
@@ -104,11 +121,10 @@ export default function EquipmentPage() {
   return <EquipmentManagement 
             inverters={inverters} 
             panels={panels} 
+            installations={installations}
             onSaveInverter={handleSaveInverter}
             onSavePanel={handleSavePanel}
             onDeleteInverter={handleDeleteInverter}
             onDeletePanel={handleDeletePanel}
          />;
 }
-
-    

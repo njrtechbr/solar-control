@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from 'next/navigation';
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   type Installation,
@@ -91,7 +92,16 @@ export default function InstallationListPage() {
 
   const tableColumns = useMemo(() => getColumns(handleArchiveToggle), [installations]);
   
+  const searchParams = useSearchParams();
+  const clientIdFilter = searchParams.get('clientId');
+
   const [filters, setFilters] = useState<{ [key: string]: string }>({});
+
+  useEffect(() => {
+    if (clientIdFilter) {
+      setFilters(prev => ({ ...prev, clientId: clientIdFilter }));
+    }
+  }, [clientIdFilter]);
 
 
   const handleSearch = (value: string) => {
@@ -106,14 +116,19 @@ export default function InstallationListPage() {
 
   const filteredInstallations = useMemo(() => {
     let filtered = [...installations];
-    const globalFilter = filters['global']?.toLowerCase();
     
+    if (filters.clientId) {
+      filtered = filtered.filter(inst => String(inst.clientId) === filters.clientId);
+    }
+    
+    const globalFilter = filters['global']?.toLowerCase();
     if (globalFilter) {
       filtered = filtered.filter(inst => 
         inst.clientName.toLowerCase().includes(globalFilter) ||
         inst.city.toLowerCase().includes(globalFilter)
       );
     }
+    
     return filtered;
   }, [installations, filters]);
 
