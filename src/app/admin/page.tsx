@@ -6,7 +6,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { User, SunMedium, Home, Building, Bolt, PlusCircle, LayoutDashboard, ListChecks, FileText, CheckCircle, List, Calendar, CircuitBoard, Search } from "lucide-react";
+import { User, SunMedium, Home, Building, Bolt, PlusCircle, LayoutDashboard, ListChecks, FileText, CheckCircle, List, Calendar, CircuitBoard, Search, Users, HardDrive } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -620,6 +620,8 @@ export default function AdminPage() {
                     <TabsTrigger value="process-status"><ListChecks className="mr-2 h-4 w-4" />Status do Projeto</TabsTrigger>
                     <TabsTrigger value="homologation-status"><CheckCircle className="mr-2 h-4 w-4" />Status da Homologação</TabsTrigger>
                     <TabsTrigger value="report-status"><FileText className="mr-2 h-4 w-4" />Status do Relatório</TabsTrigger>
+                    <TabsTrigger value="clients-view"><Users className="mr-2 h-4 w-4" />Clientes</TabsTrigger>
+                    <TabsTrigger value="equipment-view"><HardDrive className="mr-2 h-4 w-4" />Equipamentos</TabsTrigger>
                     <TabsTrigger value="calendar-view"><Calendar className="mr-2 h-4 w-4" />Calendário</TabsTrigger>
                     <TabsTrigger value="list-view"><List className="mr-2 h-4 w-4" />Lista Completa</TabsTrigger>
                     <TabsTrigger value="equipment-search"><Search className="mr-2 h-4 w-4" />Busca de Equipamento</TabsTrigger>
@@ -663,6 +665,20 @@ export default function AdminPage() {
                                 onItemMove={handleItemMove} 
                                 statusType="reportSubmitted"
                             />
+                        </div>
+                    </TabsContent>
+                     <TabsContent value="clients-view" className="h-full">
+                        <div className="p-4 text-center text-muted-foreground">
+                            <Users className="mx-auto h-12 w-12" />
+                            <h3 className="mt-4 text-lg font-medium">Gestão de Clientes</h3>
+                            <p className="text-sm">Esta área está em desenvolvimento. Aqui você poderá gerenciar todos os seus clientes de forma centralizada.</p>
+                        </div>
+                    </TabsContent>
+                     <TabsContent value="equipment-view" className="h-full">
+                        <div className="p-4 text-center text-muted-foreground">
+                             <HardDrive className="mx-auto h-12 w-12" />
+                            <h3 className="mt-4 text-lg font-medium">Gestão de Equipamentos</h3>
+                            <p className="text-sm">Esta área está em desenvolvimento. Aqui você poderá gerenciar o ciclo de vida de todos os seus equipamentos.</p>
                         </div>
                     </TabsContent>
                     <TabsContent value="calendar-view" className="h-full">
