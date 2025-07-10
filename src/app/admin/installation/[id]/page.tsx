@@ -18,7 +18,7 @@ import Link from "next/link";
 
 import { 
     type Installation, InstallationStatus, ProjectStatus, HomologationStatus, 
-    type Inverter, type Panel, inverterSchema, panelSchema 
+    type Inverter, type Panel, inverterSchema, panelSchema, initialInverters, initialPanels
 } from "@/app/admin/_lib/data";
 import { Button } from "@/components/ui/button";
 import {
@@ -72,6 +72,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
 
 
 const eventSchema = z.object({
@@ -110,6 +111,115 @@ const EVENT_TYPES = [
   { value: "Projeto", label: "Projeto", icon: FileCheck2 },
   { value: "Homologação", label: "Homologação", icon: CheckCircle },
 ];
+
+const AllocateEquipmentDialog: React.FC<{
+  installation: Installation;
+  onSave: (updatedInstallation: Installation) => void;
+}> = ({ installation, onSave }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [availableInverters, setAvailableInverters] = useState<Inverter[]>([]);
+    const [availablePanels, setAvailablePanels] = useState<Panel[]>([]);
+    const [selectedInverters, setSelectedInverters] = useState<string[]>([]);
+    const [selectedPanels, setSelectedPanels] = useState<string[]>([]);
+
+    useEffect(() => {
+        if (isOpen) {
+            // Load all installations to find out which equipment is already allocated
+            const allInstallations: Installation[] = JSON.parse(localStorage.getItem('installations') || '[]');
+            const allocatedInverterIds = new Set(allInstallations.flatMap(inst => inst.inverters?.map(inv => inv.id!)).filter(Boolean));
+            const allocatedPanelIds = new Set(allInstallations.flatMap(inst => inst.panels?.map(p => p.id!)).filter(Boolean));
+
+            // Load master equipment lists
+            const allInverters: Inverter[] = JSON.parse(localStorage.getItem('inverters') || JSON.stringify(initialInverters));
+            const allPanels: Panel[] = JSON.parse(localStorage.getItem('panels') || JSON.stringify(initialPanels));
+            
+            // Filter for available equipment
+            setAvailableInverters(allInverters.filter(inv => !allocatedInverterIds.has(inv.id!)));
+            setAvailablePanels(allPanels.filter(p => !allocatedPanelIds.has(p.id!)));
+
+            // Set initial selections based on what's already in the installation
+            setSelectedInverters(installation.inverters?.map(i => i.id!) || []);
+            setSelectedPanels(installation.panels?.map(p => p.id!) || []);
+        }
+    }, [isOpen, installation]);
+    
+    const handleSave = () => {
+        const allInverters: Inverter[] = JSON.parse(localStorage.getItem('inverters') || '[]');
+        const allPanels: Panel[] = JSON.parse(localStorage.getItem('panels') || '[]');
+
+        const updatedInstallation: Installation = {
+            ...installation,
+            inverters: allInverters.filter(inv => selectedInverters.includes(inv.id!)),
+            panels: allPanels.filter(p => selectedPanels.includes(p.id!)),
+        };
+        onSave(updatedInstallation);
+        setIsOpen(false);
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button size="sm" variant="outline"><Plus className="h-4 w-4 mr-2" /> Alocar</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Alocar Equipamentos</DialogTitle>
+                    <DialogDescription>Selecione os equipamentos do seu inventário para alocar nesta instalação.</DialogDescription>
+                </DialogHeader>
+                <div className="py-4 space-y-6 max-h-[60vh] overflow-y-auto">
+                    <div>
+                        <h4 className="font-semibold mb-2">Inversores Disponíveis</h4>
+                        <div className="space-y-2">
+                           {availableInverters.map(inverter => (
+                               <div key={inverter.id} className="flex items-center space-x-2">
+                                   <Checkbox 
+                                        id={`inv-${inverter.id}`} 
+                                        checked={selectedInverters.includes(inverter.id!)}
+                                        onCheckedChange={(checked) => {
+                                            setSelectedInverters(prev => 
+                                                checked ? [...prev, inverter.id!] : prev.filter(id => id !== inverter.id)
+                                            );
+                                        }}
+                                   />
+                                   <Label htmlFor={`inv-${inverter.id}`} className="font-normal text-sm">
+                                      {inverter.brand} {inverter.model} (S/N: {inverter.serialNumber})
+                                   </Label>
+                               </div>
+                           ))}
+                           {availableInverters.length === 0 && <p className="text-sm text-muted-foreground">Nenhum inversor disponível no estoque.</p>}
+                        </div>
+                    </div>
+                     <div>
+                        <h4 className="font-semibold mb-2">Painéis Solares Disponíveis</h4>
+                        <div className="space-y-2">
+                           {availablePanels.map(panel => (
+                               <div key={panel.id} className="flex items-center space-x-2">
+                                   <Checkbox 
+                                        id={`panel-${panel.id}`} 
+                                        checked={selectedPanels.includes(panel.id!)}
+                                        onCheckedChange={(checked) => {
+                                            setSelectedPanels(prev => 
+                                                checked ? [...prev, panel.id!] : prev.filter(id => id !== panel.id)
+                                            );
+                                        }}
+                                   />
+                                   <Label htmlFor={`panel-${panel.id}`} className="font-normal text-sm">
+                                      {panel.quantity}x {panel.brand} {panel.model} ({panel.power}Wp)
+                                   </Label>
+                               </div>
+                           ))}
+                           {availablePanels.length === 0 && <p className="text-sm text-muted-foreground">Nenhum painel disponível no estoque.</p>}
+                        </div>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                    <Button onClick={handleSave}>Salvar Alocação</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
 
 export default function InstallationDetailPage() {
   const router = useRouter();
@@ -360,6 +470,10 @@ export default function InstallationDetailPage() {
     if (!installation) return;
     const link = `${window.location.origin}/?client=${encodeURIComponent(installation.clientName)}`;
     copyToClipboard(link, "Link do formulário do instalador copiado!");
+  }
+  
+  const handleSaveAllocation = (updatedInstallation: Installation) => {
+     updateInstallation(updatedInstallation, { title: "Equipamentos Alocados!", description: "Os equipamentos foram salvos nesta instalação." });
   }
 
   if (!installation) {
@@ -878,7 +992,7 @@ export default function InstallationDetailPage() {
                     <CircuitBoard className="h-5 w-5 text-primary" />
                     Equipamentos Alocados
                   </div>
-                   <Button size="sm" variant="outline"><Plus className="h-4 w-4 mr-2" /> Alocar</Button>
+                   <AllocateEquipmentDialog installation={installation} onSave={handleSaveAllocation} />
                 </CardTitle>
                 <CardDescription>Equipamentos do inventário alocados nesta instalação.</CardDescription>
               </CardHeader>
